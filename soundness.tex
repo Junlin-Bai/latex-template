@@ -488,6 +488,9 @@ Witnesses satisfy the analogous joint block-diagonal condition.
       \text{ according to }\xi(f).
       \]
       
+      The notations \(u^{f}\) and \(u^{\uparrow f}\) extend componentwise to
+parenthesized packages of views.
+
       Resolution of paired views is componentwise:
       \[
       \mathsf{phys}_{\xi,\xi'}(u,u')
@@ -2856,75 +2859,114 @@ then
 \]
 \end{definition}
 
-\begin{definition}[Alias Compatibility Check]
-The proof-side check
-\[
-\Gamma
-\vdash
-D_f[\mathcal P]
-\cong
-D'_{f'}[\mathcal P']
-\]
-means that the two displayed descriptor commands have the same filter-layout
-form.
+\begin{definition}[Descriptor Layout Compatibility]
+  The check
+  \[
+  \Gamma
+  \vdash
+  D_f[\mathcal P]
+  \cong
+  D'_{f'}[\mathcal P']
+  \]
+  means that the two descriptor commands have the same descriptor layout form.
+  
+  For select commands,
+  \[
+  (\mathcal P_0,\mathcal P_1)
+  :=
+  \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P
+  \cong
+  (\mathcal P'_0,\mathcal P'_1)
+  :=
+  \mathbf{select}_{f'}^{N'}\ \mathbf{from}\ J'\ \mathbf{for}\ \mathcal P'
+  \]
+  requires that
+  \[
+  \mathcal P,\mathcal P',
+  \qquad
+  \mathcal P_0,\mathcal P'_0,
+  \qquad
+  \mathcal P_1,\mathcal P'_1
+  \]
+  have the same parenthesized package structure, and that the descriptor formulas
+  in the displayed Sift precondition entail
+  \[
+  N=N',
+  \qquad
+  J=J',
+  \qquad
+  \equiv_{(f,f')}.
+  \]
+  
+  For merge commands,
+  \[
+  \mathcal P
+  :=
+  \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P_0,\mathcal P_1
+  \cong
+  \mathcal P'
+  :=
+  \mathbf{merge}_{f'}^{N'}\ \mathbf{from}\ J'\ \mathbf{for}\ \mathcal P'_0,\mathcal P'_1
+  \]
+  requires that
+  \[
+  \mathcal P,\mathcal P',
+  \qquad
+  \mathcal P_0,\mathcal P'_0,
+  \qquad
+  \mathcal P_1,\mathcal P'_1
+  \]
+  have the same parenthesized package structure, and that the descriptor formulas
+  in the displayed Sift precondition entail
+  \[
+  N=N',
+  \qquad
+  J=J',
+  \qquad
+  \equiv_{(f,f')}.
+  \]
+  
+  Select and merge layouts are not compatible with each other.  The check does
+  not require equality of list names or equality of register sorts.
+  \end{definition}
 
-The filter relation is written
-\[
-\equiv_{(f,f')}.
-\]
-
-The role of
-\[
-\Gamma
-\vdash
-D_f[\mathcal P]
-\cong
-D'_{f'}[\mathcal P']
-\]
-is that the two constructions have the same descriptor shape: both are
-\textbf{select} constructions or both are \textbf{merge} constructions, with
-the same displayed length parameter \(N\), the same source-length expression
-\(J\), and compatible corresponding components.
-\end{definition}
-
-\begin{definition}[Fiber Side Condition]
-The side condition
-\[
-\Gamma
-\vDash
-C_L
-\sim_{\mathsf{fiber}}
-C_R
-:
-\equiv_{\mathcal U}
-\Longrightarrow
-\equiv_{\mathcal W}
-\]
-is a certified local adapter for register commands that are moved across a
-nearby descriptor construction such as select or merge.
-
-Its purpose is to justify that, after a descriptor command changes the logical
-view names, the same register-side operation can be written using the adapted
-source or target view names.
-
-The commands \(C_L,C_R\) must be descriptor-preserving:
-\[
-\operatorname{dupd}(C_L)=\operatorname{dupd}(C_R)=\emptyset.
-\]
-
-The input view set \(\mathcal U\) and output view set \(\mathcal W\) are
-determined by the displayed register schemas. They are not inferred from
-arbitrary descriptor commands.
-
-Their register effects are recorded by
-\[
-\operatorname{racc}(C_L),
-\operatorname{rupd}(C_L),
-\qquad
-\operatorname{racc}(C_R),
-\operatorname{rupd}(C_R).
-\]
-\end{definition}
+  \begin{definition}[Register Schema Alignment]
+    The check
+    \[
+    \Gamma
+    \vdash
+    C_L
+    \cong
+    C_R
+    :
+    \mathcal U
+    \Rightarrow
+    \mathcal W
+    \]
+    is a Sift-side static check for descriptor-preserving register schemas:
+    \[
+    \operatorname{dupd}(C_L)
+    =
+    \operatorname{dupd}(C_R)
+    =
+    \emptyset .
+    \]
+    
+    The interface
+    \[
+    \mathcal U\Rightarrow\mathcal W
+    \]
+    is the complete input/output view interface of the alignment. Its views may be
+    ordinary views, filter-indexed views \(u^{f}\), or merge-indexed views
+    \(u^{\uparrow f}\).
+    
+    The check requires that \(C_L\) and \(C_R\), after expanding the displayed
+    register sugars, have the same register schema modulo the view pairing specified
+    by \(\mathcal U\Rightarrow\mathcal W\). Paired controls, operands, and outputs
+    are exactly those displayed in \(\mathcal U\) and \(\mathcal W\). Operation
+    parameters are compared under the descriptor formulas in the displayed Sift
+    precondition.
+    \end{definition}
 
 
 
@@ -3032,24 +3074,14 @@ D_f[\mathcal P_{\mathsf{pre}}]
 D'_{f'}[\mathcal P'_{\mathsf{post}}]
 \\[0.6ex]
 \Gamma
-\vDash
+\vdash
 C_{\operatorname{tgt}_{D_f}}
-\sim_{\mathsf{fiber}}
+\cong
 C_{\operatorname{src}_{D'_{f'}}}
 :
-\equiv_{
-\left(
-\operatorname{tgt}_{D_f}(\mathcal V_{\mathsf{pre}}),
-\operatorname{src}_{D'_{f'}}(\mathcal V'_{\mathsf{pre}})
-\right)
-}
-\Longrightarrow
-\equiv_{
-\left(
-\operatorname{tgt}_{D_f}(\mathcal V_{\mathsf{post}}),
-\operatorname{src}_{D'_{f'}}(\mathcal V'_{\mathsf{post}})
-\right)
-}
+\mathcal U
+\Rightarrow
+\mathcal W
 \end{array}
 }{
 \begin{aligned}
@@ -3060,7 +3092,7 @@ C_{\operatorname{tgt}_{D_f}}
 \sim
 C_{\operatorname{src}_{D'_{f'}}};
 D'_{f'}[\mathcal P'_{\mathsf{post}}]:
-\equiv_{(f,f')}
+\Phi
 \land
 \equiv_{
 \left(
@@ -3078,104 +3110,117 @@ D'_{f'}[\mathcal P'_{\mathsf{post}}]:
 \end{aligned}
 }
 \]
+The two static checks are read relative to the descriptor formulas in the
+displayed precondition \(\Phi\). The \(\mathcal U\Rightarrow\mathcal W\) is the register input/output used
+by the alignment.
 
 
 
-\paragraph{Certified fiber instances.}
+\paragraph{Typical register schema alignments.}
 
-For basis readout with matching descriptors:
+For matching basis readout:
 \[
 \Gamma
-\vDash
+\vdash
 \mathsf{Read}_{b}^{E}(x;\bar q)
-\sim_{\mathsf{fiber}}
-\mathsf{Read}_{b'}^{E}(x';\bar q')
+\cong
+\mathsf{Read}_{b'}^{E'}(x';\bar q')
 :
-\equiv_{((b,\bar q),(b',\bar q'))}
-\Longrightarrow
-\equiv_{((b,x),(b',x'))}.
+((b,\bar q),(b',\bar q'))
+\Rightarrow
+((b,x),(b',x'))
+\]
+when the descriptor formulas in the displayed Sift precondition entail
+\[
+E=E'.
 \]
 
-For split-vs-unsplit basis readout, where
-\(m_0=\operatorname{wt}_{E}(\neg f)\) and
-\(m_1=\operatorname{wt}_{E}(f)\):
+For split-vs-unsplit basis readout:
 \[
 \Gamma
-\vDash
+\vdash
 \mathsf{Read}_{b_0}^{m_0}(x_0;\bar q_0);
 \mathsf{Read}_{b_1}^{m_1}(x_1;\bar q_1)
-\sim_{\mathsf{fiber}}
+\cong
 \mathsf{Read}_{b'}^{E}(x';\bar q')
 :
-\equiv_{(((b_0,\bar q_0),(b_1,\bar q_1)),(b',\bar q'))}
-\Longrightarrow
-\equiv_{(((b_0,x_0),(b_1,x_1)),(b',x'))}.
+\bigl(((b_0,\bar q_0),(b_1,\bar q_1)),(b',\bar q')^{f'}\bigr)
+\Rightarrow
+\bigl(((b_0,x_0),(b_1,x_1)),(b',x')^{f'}\bigr).
 \]
+The symmetric direction is also certified.
 
-For computational-basis bit preparation with matching descriptors:
+For matching computational-basis bit preparation:
 \[
 \Gamma
-\vDash
+\vdash
 \mathsf{PrepBits}^{E}(a;\bar q)
-\sim_{\mathsf{fiber}}
-\mathsf{PrepBits}^{E}(a';\bar q')
+\cong
+\mathsf{PrepBits}^{E'}(a';\bar q')
 :
-\equiv_{(a,a')}
-\Longrightarrow
-\equiv_{((a,\bar q),(a',\bar q'))}.
+(a,a')
+\Rightarrow
+((a,\bar q),(a',\bar q'))
+\]
+when the descriptor formulas in the displayed Sift precondition entail
+\[
+E=E'.
 \]
 
 For split-vs-unsplit computational-basis bit preparation:
 \[
 \Gamma
-\vDash
+\vdash
 \mathsf{PrepBits}^{E}(a;\bar q)
-\sim_{\mathsf{fiber}}
+\cong
 \mathsf{PrepBits}^{m_0}(a'_0;\bar q'_0);
 \mathsf{PrepBits}^{m_1}(a'_1;\bar q'_1)
 :
-\equiv_{(a,(a'_0,a'_1))}
-\Longrightarrow
-\equiv_{((a,\bar q),((a'_0,\bar q'_0),(a'_1,\bar q'_1)))}.
+\bigl(a,(a'_0,a'_1)^{\uparrow f'}\bigr)
+\Rightarrow
+\bigl((a,\bar q),((a'_0,\bar q'_0),(a'_1,\bar q'_1))^{\uparrow f'}\bigr).
 \]
+The symmetric direction is also certified.
 
-For basis-indexed bit preparation with matching descriptors:
+For matching basis-indexed bit preparation:
 \[
 \Gamma
-\vDash
+\vdash
 \mathsf{PrepBits}^{E}_{b}(a;\bar q)
-\sim_{\mathsf{fiber}}
-\mathsf{PrepBits}^{E}_{b'}(a';\bar q')
+\cong
+\mathsf{PrepBits}^{E'}_{b'}(a';\bar q')
 :
-\equiv_{((a,b),(a',b'))}
-\Longrightarrow
-\equiv_{((a,b,\bar q),(a',b',\bar q'))}.
+((a,b),(a',b'))
+\Rightarrow
+((a,b,\bar q),(a',b',\bar q'))
+\]
+when the descriptor formulas in the displayed Sift precondition entail
+\[
+E=E'.
 \]
 
 For split-vs-unsplit basis-indexed bit preparation:
 \[
 \Gamma
-\vDash
+\vdash
 \mathsf{PrepBits}^{E}_{b}(a;\bar q)
-\sim_{\mathsf{fiber}}
+\cong
 \mathsf{PrepBits}^{m_0}_{b'_0}(a'_0;\bar q'_0);
 \mathsf{PrepBits}^{m_1}_{b'_1}(a'_1;\bar q'_1)
 :
-\equiv_{((a,b),((a'_0,b'_0),(a'_1,b'_1)))}
-\Longrightarrow
-\equiv_{
-((a,b,\bar q),((a'_0,b'_0,\bar q'_0),(a'_1,b'_1,\bar q'_1)))
-}.
+\bigl((a,b),((a'_0,b'_0),(a'_1,b'_1))^{\uparrow f'}\bigr)
+\Rightarrow
+\bigl(
+(a,b,\bar q),
+((a'_0,b'_0,\bar q'_0),(a'_1,b'_1,\bar q'_1))^{\uparrow f'}
+\bigr).
 \]
+The symmetric direction is also certified.
 
 \paragraph{Derived sift-measure instance.}
 
-Let
-\[
-m_c=\operatorname{wt}_{J}(\neg f),
-\qquad
-m_k=\operatorname{wt}_{J}(f).
-\]
+Let \(m_c,m_k\) be the displayed lengths of the two selected target views.
+
 Taking
 \[
 D_f[\mathcal P_{\mathsf{pre}}]
@@ -3230,12 +3275,7 @@ gives:
 
 \paragraph{Derived sift-prepare instance.}
 
-Let
-\[
-m_c=\operatorname{wt}_{J}(\neg f),
-\qquad
-m_k=\operatorname{wt}_{J}(f).
-\]
+Let \(m_c,m_k\) be the displayed lengths of the two selected source views.
 
 For computational-basis preparation, taking
 \[
