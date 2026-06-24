@@ -30,3 +30,4 @@ Manual build options:
 The generated PDF and auxiliary files are written next to `main.tex`.
 The machine now has `latex`, `pdflatex`, and `latexmk` installed through Homebrew `texlive`.
 Use `pdflatex` or `latexmk -pdf` when you want a PDF. Plain `latex` normally produces DVI output rather than a PDF.
+------
