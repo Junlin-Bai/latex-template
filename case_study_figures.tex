@@ -1,0 +1,387 @@
+\clearpage
+\onecolumn
+\begin{center}
+\vspace*{\fill}
+\begingroup
+\definecolor{lcBell}{RGB}{226,239,255}
+\definecolor{lcCheck}{RGB}{224,244,232}
+\definecolor{lcMove}{RGB}{255,238,214}
+\definecolor{lcLoad}{RGB}{240,228,255}
+\definecolor{lcCss}{RGB}{255,230,238}
+\definecolor{lcPanel}{RGB}{230,240,255}
+\newcommand{\lcB}[1]{\colorbox{lcBell}{$\scriptstyle #1$}}
+\newcommand{\lcC}[1]{\colorbox{lcCheck}{$\scriptstyle #1$}}
+\newcommand{\lcM}[1]{\colorbox{lcMove}{$\scriptstyle #1$}}
+\newcommand{\lcL}[1]{\colorbox{lcLoad}{$\scriptstyle #1$}}
+\newcommand{\lcS}[1]{\colorbox{lcCss}{$\scriptstyle #1$}}
+\newcommand{\glabel}[2]{\textbf{#1}\\[-2pt]{\scriptsize\textsc{#2}}}
+\tikzset{
+  gamebox/.style={draw,rounded corners=5pt,thick,draw=black!80,fill=gray!2,
+    inner xsep=3pt,inner ysep=5pt,text width=6.05cm,align=left,font=\footnotesize},
+  relbox/.style={draw,rounded corners=5pt,thick,draw=black!75,fill=gray!8,
+    inner xsep=4pt,inner ysep=3pt,text width=4.85cm,align=center,font=\scriptsize},
+  flow/.style={-{Latex[length=3.0mm,width=2.0mm]},line width=0.95pt,
+    rounded corners=7pt,shorten <=0.4pt,shorten >=0.4pt,draw=black!82}
+}
+\begin{tcolorbox}[width=\linewidth,colback=lcPanel!18,colframe=black!45,
+  boxrule=0.6pt,arc=6pt,left=4pt,right=4pt,top=4pt,bottom=5pt,boxsep=1pt]
+\centering
+\resizebox{0.98\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+\path[use as bounding box] (-4.10,-5.95) rectangle (17.65,12.05);
+
+\node[gamebox] (g0) at (0,10.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_0$}{Bell Front End}\\[1pt]
+\lcB{\bar q[1{:}2n]\asteq H^{\otimes 2n};\ \bar q\asteq CNOT}\\[1pt]
+$\mathsf{B}_0$\\[1pt]
+\lcC{c_a := \mathcal M[\bar q[1{:}n]]}\\[1pt]
+$\mathsf{QEC}_A;\ \mathsf{QEC}_B$
+\end{tabular}};
+
+\node[relbox] (r02) at (0,6.5) {
+\[
+\begin{array}{c}
+\textsc{Expose Check Measurement}\ (2 hops)\\[1mm]
+\mathsf{Out}(G_0)\overset{d}{=}\mathsf{Out}(G_2)\\[1mm]
+[\mathcal I_1]\ \textsc{ObsEq}/\textsc{Swap}_{c_a}
+\end{array}
+\]};
+
+\node[gamebox] (g2) at (0,3.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_2$}{Check Isolated}\\[1pt]
+\lcC{c_a := \mathcal M[\bar q[1{:}n]]}\\[1pt]
+\lcB{\bar q[n+1{:}2n,\,3n+1{:}4n]\asteq CNOT}\\[1pt]
+\lcC{X_{c_a[1{:}n]}[\bar q[2n+1{:}3n]]}\\[1pt]
+$\mathsf{B}_0;\ \mathsf{QEC}_A;\ \mathsf{QEC}_B$
+\end{tabular}};
+
+\node[relbox] (r25) at (0,-0.5) {
+\[
+\begin{array}{c}
+\textsc{Classicalize Check Prep}\ (3 hops)\\[1mm]
+\mathsf{Out}(G_2)\overset{d}{=}\mathsf{Out}(G_5)\\[1mm]
+[\mathcal I_2]\ \textsc{InputHop}_{\mathrm{check}}
+\end{array}
+\]};
+
+\node[gamebox] (g5) at (0,-4.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_5$}{Classical Check Prep}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcB{\bar q[n+1{:}2n]\asteq H^{\otimes n}}\\[1pt]
+\lcB{\bar q[n+1{:}2n,\,3n+1{:}4n]\asteq CNOT}\\[1pt]
+\lcM{\mathsf{B}_0;\ \mathsf{QEC}_A;\ \mathsf{QEC}_B}
+\end{tabular}};
+
+\node[relbox] (r56) at (6.75,-4.0) {
+\[
+\begin{array}{c}
+\textsc{Move Key Extraction}\ (1 hop)\\[1mm]
+\mathsf{Out}(G_5)\overset{d}{=}\mathsf{Out}(G_6)\\[1mm]
+[\mathcal I_3]\ \textsc{ObsEq}/\textsc{Swap}_{\mathrm{key}}
+\end{array}
+\]};
+
+\node[gamebox] (g6) at (13.5,-4.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_6$}{Key Moved}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcM{\mathsf{QEC}_A;\ \text{Alice-side key extraction}}\\[1pt]
+$\mathsf{B}_0$\\[1pt]
+\lcL{\mathsf{QEC}_B;\ \text{Bob-side key extraction}}
+\end{tabular}};
+
+\node[relbox] (r610) at (13.5,-0.5) {
+\[
+\begin{array}{c}
+\textsc{Load Explicit Codeword}\ (4 hops)\\[1mm]
+\mathsf{Out}(G_6)\overset{d}{=}\mathsf{Out}(G_{10})\\[1mm]
+[\mathcal I_4]\ \textsc{Iface}/\textsc{QEC-Before-Channel}
+\end{array}
+\]};
+
+\node[gamebox] (g10) at (13.5,3.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{10}$}{Explicit Codeword Load}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcL{k :=_\$ \mathbf{rand}(m)}\\[1pt]
+\lcL{\mathsf{Load}_{k[1{:}m]}\ \mathrm{on}\ \bar q[3n+1{:}3n+m]}\\[1pt]
+\lcS{\bar q[3n+1{:}4n]=\mathsf{Encode}_{x,z}(k)}\\[1pt]
+\lcL{\mathsf{B}_0;\ \mathsf{Decode}_B}
+\end{tabular}};
+
+\node[relbox] (r10css) at (13.5,6.5) {
+\[
+\begin{array}{c}
+\textsc{Expose CSS Randomizers}\ (2 hops)\\[1mm]
+\mathsf{Out}(G_{10})\overset{d}{=}\mathsf{Out}(G_{\mathrm{CSS}})\\[1mm]
+[\mathcal I_5]\ \textsc{Iface}/\textsc{CSS-Front-End Fold}
+\end{array}
+\]};
+
+\node[gamebox] (gcss) at (13.5,10.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{\mathrm{CSS}}$}{CSS Form}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcS{k,x,z :=_\$ \mathbf{rand}}\\[1pt]
+\lcS{\bar q[3n+1{:}4n]=\mathsf{Encode}_{x,z}(k)}\\[1pt]
+$\mathsf{B}_1$\\[1pt]
+\lcS{\bar q[m+1{:}2m]=\mathsf{Decode}(\bar q[3n+1{:}4n])}
+\end{tabular}};
+
+\draw[flow] (g0.south) -- (r02.north);
+\draw[flow] (r02.south) -- (g2.north);
+\draw[flow] (g2.south) -- (r25.north);
+\draw[flow] (r25.south) -- (g5.north);
+\draw[flow] (g5.east) -- (r56.west);
+\draw[flow] (r56.east) -- (g6.west);
+\draw[flow] (g6.north) -- (r610.south);
+\draw[flow] (r610.north) -- (g10.south);
+\draw[flow] (g10.north) -- (r10css.south);
+\draw[flow] (r10css.north) -- (gcss.south);
+\end{tikzpicture}}
+\par\smallskip
+{\footnotesize
+\refstepcounter{figure}\label{fig:lc-css-main}\textbf{Figure~\thefigure.}
+Central case-study figure for the Lo--Chau$\leadsto$CSS chain. Game boxes show only proof-relevant fragments; matching colors identify corresponding fragments across adjacent checkpoints, and relation boxes give the semantic interface used by the checker.}
+\end{tcolorbox}
+\endgroup
+\vspace*{\fill}
+\end{center}
+\clearpage
+
+\begin{center}
+\vspace*{\fill}
+\begingroup
+\definecolor{cbCheck}{RGB}{226,239,255}
+\definecolor{cbKey}{RGB}{224,244,232}
+\definecolor{cbChannel}{RGB}{240,228,255}
+\definecolor{cbRecv}{RGB}{255,238,214}
+\definecolor{cbSift}{RGB}{222,246,246}
+\definecolor{cbMeasure}{RGB}{255,230,238}
+\definecolor{cbBob}{RGB}{255,247,210}
+\definecolor{cbPanel}{RGB}{238,246,244}
+\newcommand{\cbC}[1]{\colorbox{cbCheck}{$\scriptstyle #1$}}
+\newcommand{\cbK}[1]{\colorbox{cbKey}{$\scriptstyle #1$}}
+\newcommand{\cbU}[1]{\colorbox{cbChannel}{$\scriptstyle #1$}}
+\newcommand{\cbR}[1]{\colorbox{cbRecv}{$\scriptstyle #1$}}
+\newcommand{\cbS}[1]{\colorbox{cbSift}{$\scriptstyle #1$}}
+\newcommand{\cbM}[1]{\colorbox{cbMeasure}{$\scriptstyle #1$}}
+\newcommand{\cbB}[1]{\colorbox{cbBob}{$\scriptstyle #1$}}
+\newcommand{\glabel}[2]{\textbf{#1}\\[-2pt]{\scriptsize\textsc{#2}}}
+\tikzset{
+  gamebox/.style={draw,rounded corners=5pt,thick,draw=black!80,fill=gray!2,
+    inner xsep=3pt,inner ysep=5pt,text width=6.05cm,align=left,font=\footnotesize},
+  relbox/.style={draw,rounded corners=5pt,thick,draw=black!75,fill=gray!8,
+    inner xsep=4pt,inner ysep=3pt,text width=4.85cm,align=center,font=\scriptsize},
+  flow/.style={-{Latex[length=3.0mm,width=2.0mm]},line width=0.95pt,
+    rounded corners=7pt,shorten <=0.4pt,shorten >=0.4pt,draw=black!82}
+}
+\begin{tcolorbox}[width=\linewidth,colback=cbPanel!18,colframe=black!45,
+  boxrule=0.6pt,arc=6pt,left=4pt,right=4pt,top=4pt,bottom=5pt,boxsep=1pt]
+\centering
+\resizebox{0.90\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+\path[use as bounding box] (-4.10,-10.35) rectangle (17.65,17.60);
+
+\node[gamebox] (g0) at (0,14.9) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_0$}{CSS Form}\\[1pt]
+$\mathsf{CSS}_{\mathrm{rand}}$\\
+$\cbC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}$\\
+$\cbK{\bar q[3n+1{:}4n]=\mathsf{Encode}_{x,z}(k)}$\\
+$f_{\mathbf c}:=_\$\mathbf{shuffle}(2n);\;b:=_\$\mathbf{rand}(2n)$\\
+$\cbC{B_{b[1{:}n]}[\bar q[2n+1{:}3n]]}$\\
+$\cbK{B_{b[n+1{:}2n]}[\bar q[3n+1{:}4n]]};\;\mathsf{Ch}^{\mathrm{CSS}}_{f_{\mathbf c}}$\\
+$\mathbf{publish: }\mathrm{received},\,f_{\mathbf c},\,b,\,x,\,z$\\
+$\mathsf{Decode};\;\text{final key measurement}$
+\end{tabular}};
+
+\node[relbox] (r03) at (0,11.05) {
+\[
+\begin{array}{c}
+\textsc{Expand Check Basis}\ (3 hops)\\[1mm]
+\mathsf{Out}(G_0)\overset{d}{=}\mathsf{Out}(G_3)\\[1mm]
+[\mathcal I_1]\ \textsc{InputHop}/\textsc{Basis-Exp}_{\mathrm{check}}
+\end{array}
+\]};
+
+\node[gamebox] (g3) at (0,7.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_3$}{Check Expanded}\\[1pt]
+$\mathsf{CSS}_{\mathrm{rand}}$\\
+$\cbC{P_{c_a,b[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}$\\
+$\cbK{\bar q[3n+1{:}4n]=\mathsf{Encode}_{x,z}(k)}$\\
+$f_{\mathbf c}:=_\$\mathbf{shuffle}(2n);\;b:=_\$\mathbf{rand}(2n)$\\
+$\cbK{B_{b[n+1{:}2n]}[\bar q[3n+1{:}4n]]};\;\mathsf{Ch}^{\mathrm{CSS}}_{f_{\mathbf c}}$\\
+$\mathbf{publish: }\mathrm{received},\,f_{\mathbf c},\,b,\,x,\,z$\\
+$\cbC{M_{b[1{:}n]\to c_b}[\bar q[2n+1{:}3n]]}$
+\end{tabular}};
+
+\node[relbox] (r36) at (0,3.35) {
+\[
+\begin{array}{c}
+\textsc{Expand Key Basis}\ (3 hops)\\[1mm]
+\mathsf{Out}(G_3)\overset{d}{=}\mathsf{Out}(G_6)\\[1mm]
+[\mathcal I_2]\ \textsc{InputHop}/\textsc{Basis-Exp}_{\mathrm{key}}
+\end{array}
+\]};
+
+\node[gamebox] (g6) at (0,-0.5) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_6$}{Key Normalized}\\[1pt]
+$\cbC{c_a:=_\$\mathbf{rand}(n)};\;\cbK{x:=_\$\mathbf{rand}(n)}$\\
+$\cbC{b[1{:}n]};\;\cbK{b[n+1{:}2n]}\ :=_\$\mathbf{rand}$\\
+$\cbC{P_{c_a,b[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}$\\
+$\cbK{P_{x,b[n+1{:}2n]}\ \mathrm{on}\ \bar q[3n+1{:}4n]}$\\
+$\cbU{f_{\mathbf c}:=_\$\mathbf{shuffle}(2n);\ \mathsf{Ch}^{\mathrm{CSS}}_{f_{\mathbf c}}}$\\
+$\cbU{\mathbf{publish: }\mathrm{received},\,f_{\mathbf c},\,b,\,x-\nu_k}$\\
+$\cbC{M_{b[1{:}n]\to c_b}[\bar q[2n+1{:}3n]]}$\\
+$\cbK{M_{b[n+1{:}2n]\to k'}[\bar q[3n+1{:}4n]]}$\\
+$\cbK{\mathsf{Rec}_{x-\nu_k}[k',x]}$
+\end{tabular}};
+
+\node[relbox] (r611) at (0,-4.35) {
+\[
+\begin{array}{c}
+\textsc{Unify Channel Interface}\ (5 hops)\\[1mm]
+\mathsf{Out}(G_6)\overset{d}{=}\mathsf{Out}(G_{11})\\[1mm]
+[\mathcal I_3]\ \textsc{InterfaceLemma}/\textsc{Unify}_{x,b}
+\end{array}
+\]};
+
+\node[gamebox] (g11) at (0,-8.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{11}$}{BB84 Channel}\\[1pt]
+$x:=_\$\mathbf{rand}(2n);\;b:=_\$\mathbf{rand}(2n)$\\
+$\cbR{P_{x,b}[1{:}2n]}$\\
+$\cbR{\bar q[2n+1{:}4n+\delta]:=|0\rangle^{\otimes 2n+\delta}}$\\
+$\cbU{\mathsf{Ch}^{\mathrm{BB84}}}$\\
+$\cbU{\mathbf{publish: }\mathrm{received},\,b}$\\
+$\cbU{f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\ \mathbf{publish: }f_{x,b}}$\\
+$\cbU{\mathsf{Part}^{Q}_{f_{x,b}}[x,\bar q]}$\\
+$\cbU{M_{b\to c_b};\;M_{b\to k'};\;\mathsf{Rec}_{x-\nu_k}[k',x]}$
+\end{tabular}};
+
+\node[relbox] (r1113) at (6.75,-8.2) {
+\[
+\begin{array}{c}
+\textsc{Expose Received Set}\ (2 hops)\\[1mm]
+\mathsf{Out}(G_{11})\overset{d}{=}\mathsf{Out}(G_{13})\\[1mm]
+[\mathcal I_4]\ \textsc{InterfaceLemma}/\textsc{Recv-Select}_{2n}
+\end{array}
+\]};
+
+\node[gamebox] (g13) at (13.5,-8.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{13}$}{Recv. Expanded}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$\cbR{P_{x,b}[1{:}4n+\delta]}$\\
+$\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\mathbf{publish: }\mathrm{received},\,b$\\
+$\cbR{\mathsf{Recv}_{2n}[x,b,\bar q]}$\\
+$f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\;\mathbf{publish: }f_{x,b}$\\
+$\cbS{\mathsf{Part}^{Q}_{f_{x,b}}[x',\bar q']}$\\
+$M_{b'\to c_b};\;M_{b'\to k'};\;\mathsf{Rec}_{x-\nu_k}[k',x']$
+\end{tabular}};
+
+\node[relbox] (r1315) at (13.5,-4.35) {
+\[
+\begin{array}{c}
+\textsc{Matched-Basis Sifting}\ (2 hops)\\[1mm]
+\Delta_{\mathrm{TV}}\!\left(\mathsf{Out}(G_{13}),\mathsf{Out}(G_{15})\right)\le\delta_{\mathrm{UTB}}\\[1mm]
+[\mathcal I_5]\ \textsc{BadEvent}/\textsc{Basis-Sift}_{b_2}
+\end{array}
+\]};
+
+\node[gamebox] (g15) at (13.5,-0.5) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{15}$}{Sifting Isolated}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$P_{x,b}[1{:}4n+\delta];\;\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\mathbf{publish: }\mathrm{received}$\\
+\cbS{b_2:=_\$\mathbf{rand}(4n+\delta);\;\mathbf{publish: }b}\\
+\cbS{\mathsf{Sift}^{2n}_{b,b_2}[x,\bar q]}\\
+$f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\;\mathbf{publish: }f_{x,b}$\\
+\cbM{\mathsf{Part}^{Q}_{f_{x,b}}[x_1,\bar q_1]}\\
+\cbM{M_{b_1\to c_b};\;M_{b_1\to k'};\;\mathsf{Rec}_{x-\nu_k}[k',x_1]}
+\end{tabular}};
+
+\node[relbox] (r1517) at (13.5,3.35) {
+\[
+\begin{array}{c}
+\textsc{Measure Before Partition}\ (2 hops)\\[1mm]
+\mathsf{Out}(G_{15})\overset{d}{=}\mathsf{Out}(G_{17})\\[1mm]
+[\mathcal I_6]\ \textsc{ObsEq}/\textsc{Meas-Before-Part}
+\end{array}
+\]};
+
+\node[gamebox] (g17) at (13.5,7.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{17}$}{Measure First}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$P_{x,b}[1{:}4n+\delta];\;\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\cbB{x-\nu_k:=_\$\textit{rand}(k_x)}$\\
+$\mathbf{publish: }\mathrm{received}$\\
+$b_2:=_\$\mathbf{rand}(4n+\delta);\;\mathbf{publish: }b$\\
+$\cbB{\mathsf{Sift}^{2n}_{b,b_2}[x,\bar q]}$\\
+$\cbB{M_{b_1\to x_2}[\bar q_1;1{:}2n]}$\\
+$\cbM{\mathsf{Part}^{C}_{f_{x,b}}[x_1,x_2]}$\\
+$\mathbf{publish: }x-\nu_k$
+\end{tabular}};
+
+\node[relbox] (r17b) at (13.5,11.05) {
+\[
+\begin{array}{c}
+\textsc{Bob Measures First}\ (1 hop)\\[1mm]
+\mathsf{Out}(G_{17})\overset{d}{=}\mathsf{Out}(G_{\mathrm{BB84}})\\[1mm]
+[\mathcal I_7]\ \textsc{ObsEq}/\textsc{Bob-Measure-First}
+\end{array}
+\]};
+
+\node[gamebox] (gb) at (13.5,14.9) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{\mathrm{BB84}}$}{BB84 Form}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$P_{x,b}[1{:}4n+\delta];\;\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\cbB{x-\nu_k:=_\$\textit{rand}(k_x)}$\\
+$\mathbf{publish: }\mathrm{received};\;b_2:=_\$\mathbf{rand}(4n+\delta)$\\
+$\cbB{M_{b_2\to x'}[\bar q;1{:}4n+\delta]}$\\
+$\mathbf{publish: }b$\\
+\cbB{(b_1,x_1,x_2):=}\\
+\cbB{\mathsf{Sift}^{2n}_{b,b_2}[x,x']}\\
+$f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\;\mathbf{publish: }f_{x,b}$\\
+$\mathsf{Part}^{C}_{f_{x,b}}[x_1,x_2];\;\mathbf{publish: }x-\nu_k$
+\end{tabular}};
+
+\draw[flow] (g0.south) -- (r03.north);
+\draw[flow] (r03.south) -- (g3.north);
+\draw[flow] (g3.south) -- (r36.north);
+\draw[flow] (r36.south) -- (g6.north);
+\draw[flow] (g6.south) -- (r611.north);
+\draw[flow] (r611.south) -- (g11.north);
+\draw[flow] (g11.east) -- (r1113.west);
+\draw[flow] (r1113.east) -- (g13.west);
+\draw[flow] (g13.north) -- (r1315.south);
+\draw[flow] (r1315.north) -- (g15.south);
+\draw[flow] (g15.north) -- (r1517.south);
+\draw[flow] (r1517.north) -- (g17.south);
+\draw[flow] (g17.north) -- (r17b.south);
+\draw[flow] (r17b.north) -- (gb.south);
+\end{tikzpicture}}
+\par\smallskip
+{\footnotesize
+\refstepcounter{figure}\label{fig:css-bb84-main}\textbf{Figure~\thefigure.}
+Central case-study figure for the CSS$\leadsto$BB84 chain. Game boxes show only proof-relevant fragments; matching colors identify corresponding fragments across adjacent checkpoints. The matched-basis sifting interface is the only lossy step and contributes $\delta_{\mathrm{UTB}}$.}
+\end{tcolorbox}
+\endgroup
+\vspace*{\fill}
+\end{center}
+\clearpage
+\twocolumn

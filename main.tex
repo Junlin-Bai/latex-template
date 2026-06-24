@@ -1,0 +1,2580 @@
+\RequirePackage{fix-cm}
+\documentclass[conference,compsoc]{IEEEtran}
+% chktex-file 3
+% chktex-file 8
+% chktex-file 13
+% chktex-file 24
+% chktex-file 35
+% chktex-file 36
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Toggle for comments
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newif\ifshowcomments
+\showcommentstrue      % turn comments ON
+% \showcommentsfalse    % turn comments OFF
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\usepackage{amsmath,amssymb,mathtools,booktabs}
+\usepackage{graphicx}
+\usepackage{stfloats}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,fit,positioning}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xspace}
+\providecommand{\pgfsyspdfmark}[3]{}
+\providecommand{\Description}[1]{}
+\newenvironment{tightdisplay}{%
+  \begingroup
+  \setlength{\arraycolsep}{2pt}%
+  \[
+}{%
+  \]
+  \endgroup
+}
+\newenvironment{tightprogram}{\left\{\begin{array}{@{}l@{}}}{\end{array}\right.}
+\providecommand{\llbracket}{\mathopen{[\![}}
+\providecommand{\rrbracket}{\mathclose{]\!]}}
+\providecommand{\ket}[1]{\lvert #1\rangle}
+\providecommand{\bra}[1]{\langle #1\rvert}
+
+\newcommand{\bb}{\textsf{BB84}\xspace}
+\newcommand{\bbm}{\textsf{BBM92}\xspace}
+\newcommand{\mdiqkd}{\textsf{MDI-QKD}\xspace}
+\newcommand{\tfqkd}{\textsf{TF-QKD}\xspace}
+\newcommand{\cvqkd}{\textsf{CV-QKD}\xspace}
+\newcommand{\rhl}{\textsf{RHL}\xspace}
+\newcommand{\prhl}{\textsf{pRHL}\xspace}
+\newcommand{\qrhl}{\textsf{qRHL}\xspace}
+\newcommand{\Real}{\mathsf{Real}}
+\newcommand{\Ideal}{\mathsf{Ideal}}
+\newcommand{\asteq}{\mathrel{*\!=}}
+\newcommand{\trans}[2]{\texttt{#1}\allowbreak$\rightarrow$\allowbreak\texttt{#2}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\Proj}{\operatorname{Proj}}
+\newcommand{\Img}{\operatorname{Im}}
+\newcommand{\SepD}{\operatorname{Sep}D}
+\newcommand{\Var}{\operatorname{var}}
+\newcommand{\Supp}{\operatorname{supp}}
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{pro}{Proposition}
+
+\newcommand{\hanru}[1]{%
+  \ifshowcomments
+      \parbox[t]{\linewidth}{\small \color{blue} [[ Hanru: #1]]}
+  \fi
+}
+
+
+
+\providecommand\BibTeX{Bib\TeX}
+
+\begin{document}
+
+\flushbottom
+\setlength{\emergencystretch}{1.5em}
+\setlength{\textfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\abovedisplayskip}{5pt plus 2pt minus 2pt}
+\setlength{\belowdisplayskip}{5pt plus 2pt minus 2pt}
+\setlength{\abovedisplayshortskip}{3pt plus 1pt minus 1pt}
+\setlength{\belowdisplayshortskip}{3pt plus 1pt minus 1pt}
+\setlength{\jot}{2pt}
+\hfuzz=50pt
+\hbadness=10000
+\vbadness=10000
+
+\title{Towards Automated Proofs for Quantum Key Distribution}
+
+
+\author{\IEEEauthorblockN{Anonymous Authors}}
+
+\maketitle
+
+\begin{abstract}
+
+Quantum key distribution (QKD) enables two parties to establish shared secret keys with information-theoretic security against computationally unbounded eavesdroppers, making it attractive for sensitive applications such as government, defense, and financial communications. However, QKD security proofs are intricate game chains rather than monolithic arguments: for example, proofs of the seminal and arguably intuitive \bb protocol were refined over nearly two decades. This makes QKD security proofs a natural target for formal verification; however, even full mechanized formalization remains challenging, let alone full automation. In this paper, we present a highly automated mechanized verification of the key security proof chain underlying \bb. Starting from an imported Lo--Chau security theorem, we verify the game chain to \bb using a QKD-specific relational Hoare logic. The proof chain consists of 27 mechanically verified steps, 17 of which are discovered automatically by a tool we designed specifically for QKD proofs. Our proof focuses on the security-preserving hops around CSS reasoning; the CSS error-correction theorem itself is imported as an external component. Our work turns a historically delicate hand proof into a structured, replayable proof script and demonstrates by example that QKD security proofs can be highly automated as modular proof chain programs.
+\end{abstract}
+
+\begin{IEEEkeywords}
+quantum key distribution, relational Hoare logic, formal verification, quantum cryptography, security automation
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\textbf{\textcolor{red}{ the introduction needs more structure. It woud be beneficial to structure it along the following lines (each item should be treated in at least one paragraph, i am not suggested to use my statements as title of the paragraphs):\\
+1. QKD is a key technology\\
+2. QKD security proofs are hard:
+- requires approximate reasoning and reasoning about adversaries
+- proof structure is complex
+- justifying each step is also hard\\
+3. Formal verification of QKD is important. Also one of the problem in the Paslberg list of 100 theorems. 
+- Needs to discover the proof structure
+- Needs to prove each step is correct\\
+4. Contributions
+- A tool for discovering QKD proofs with minimnal user interaction
+- A formal justification of the tool steps using an approximate logic
+- A proof of BB84\\
+ Intro: the structure and flow is much better, but the phrasing is occasionally a bit arcane. It may be worth mentioning game-hopping proofs (Bellare Rogaway and Shoup) but I am not sure we should say they are the norm. Also I do not like the word reduction because it suggests that one reduces to computational assumptions. Maybe a better phrasing is to say that existing pen-and-paper proofs implicitly rely on intermediate games, as has become standard in the classical crypto literature, and that we strengthen this connection with game-based proofs, by providing a program logic and a tool.\\
+  Introduction: You are still using the terminology security reduction, which I feel is not the best.}}
+
+Quantum key distribution (QKD) is often presented as one of the cleanest victories of quantum information: it promises cryptographic security from physical principles rather than from unproven computational hardness assumptions~\cite{bb84,bbm92,scarani2009security,wehner2018quantum,xu2020secure,azuma2023quantum}. In a QKD protocol, adversarial interference with the quantum channel is not hidden from the proof; it is exposed through protocol statistics and converted into evidence for bounding information leakage. This makes QKD attractive for high-assurance communication and long-lived secrets in settings where computational assumptions may eventually fail.
+
+The apparent simplicity of this promise conceals a severe proof-engineering problem. The \bb protocol was proposed in 1984~\cite{bb84}, but its information-theoretic security was clarified only much later through sophisticated arguments involving entanglement purification and Calderbank--Shor--Steane (CSS) quantum error-correcting codes~\cite{calderbank1996good,steane1996multiple,lochau1999unconditional,shor2000simple,mayers2001unconditional}. This delay was not merely historical. A QKD security proof is rarely a single invariant over one protocol. It is a sequence of neighboring classical--quantum games in which measurements are delayed, bases are changed, adversarial entanglement is rearranged, code-based tests are introduced, quantum operations are eliminated, and classical post-processing is related back to an implementable prepare-and-measure protocol.
+
+Our key observation is that the hidden proof object in QKD security is not a theorem about a single protocol, but a cost-bearing chain of relational transformations between classical--quantum games. Each hop modifies the protocol while preserving security up to an explicitly bounded loss; the endpoint theorem is meaningful only if every local transformation is justified and if the accumulated approximation cost is accounted for. Modern QKD only makes this issue more acute. Security proofs now use composable definitions and finite-key bounds~\cite{devetak2005distillation,renner2008security,scarani2009security,tomamichel2012tight,xu2020secure}, while practical protocols incorporate decoy states, measurement-device independence, twin-field constructions, side-channel models, and finite-size effects~\cite{lo2005decoy,wang2005beating,lo2012mdi,yin2016mdi,lucamarini2018overcoming,liu2023twinfield}. Yet the proof workflow remains largely artisanal: each new protocol variant may require a new handwritten chain of games whose assumptions, local rewrites, and security losses are difficult to audit, replay, or reuse.
+
+This paper argues that QKD needs proof infrastructure at the level where QKD proofs actually happen: the level of intermediate games. Such infrastructure should make games first-class artifacts, expose the local transformations between them, and compose the resulting approximation costs. Formal verification is useful here not merely because QKD is important, but because QKD proofs have precisely the structure that program logics are designed to control: they are relational, approximate, probabilistic, and program-transformational. The \bb protocol is a natural benchmark for this agenda. It is the canonical QKD protocol, appears in David and Palsberg's list of Top 100 Quantum Theorems~\cite{davidpalsbergtop100}, and its standard proof already contains the semantic game chain that any serious verification framework for QKD must be able to represent. Although \bb is operationally simple, its security proof exercises exactly the features that make QKD proof engineering difficult: hybrid classical--quantum state, delayed measurements, basis changes, CSS-code reasoning, and accumulated approximation bounds.
+
+The Shor--Preskill proof is the paradigmatic example. It starts from the Lo--Chau entanglement-purification protocol as a security input, uses CSS-code structure to remove quantum computation from the honest parties, and derives the security of the implementable prepare-and-measure \bb protocol~\cite{shor2000simple}. Although usually presented as pen-and-paper proofs implicitly relating neighboring games and tracks how each transformation changes the adversary's distinguishing advantage~\cite{renner2008security}. This perspective mirrors the game-playing methodology of classical cryptography, where Bellare and Rogaway's code-based framework and Shoup's sequences of games organize complex security proofs through stepwise changes in adversarial advantage~\cite{bellare2006codebased,shoup2004sequences}. Relational Hoare logics and tools such as EasyCrypt made this methodology machine-checkable for probabilistic programs~\cite{benton2004simple,barthe2009formal,barthe2011computer,barthe2012probabilistic,easycrypt,barthe2013probabilistic,barthe2016couplings,barthe2017uniformity,sok2021computeraided}. Our goal is to bring this style of proof engineering to QKD game chains.
+
+Existing quantum verification frameworks provide important ingredients, but none directly targets this proof abstraction: a game hop as a typed, compositional, cost-bearing transformation between classical--quantum protocols. Process-calculus and model-checking approaches verify quantum communication protocols using qCCS-style calculi, bisimulation, and model checking~\cite{feng2007probabilistic,gay2008qmc,deng2012openbisimulation,feng2014symbolicbisimulation,feng2015qpmc,kubota2016semiautomated,qin2020groundbisimulation}. Relational logics such as qRHL, rqPD, and approximate rqPD support reasoning about pairs of quantum programs and approximate relational properties~\cite{unruh2019qrhl,barthe2020relational,li2021expectation,yan2024approximate,barthe2025complete}. Classical--quantum program logics provide semantic foundations for programs with classical control and quantum data~\cite{dhondt2006quantum,ying2011floyd,ying2016foundations,zhou2019applied,feng2021qhlclassical}. QKD game chains require these ingredients simultaneously: quantum evolution, explicit classical sampling, probabilistic protocol flow, relational reasoning between neighboring games, and compositional accounting of failure probabilities.
+
+We develop a classical--quantum approximate rqPD framework for this setting and use it to verify an explicit game chain for \bb. The framework is organized around game hopping rather than monolithic protocol verification. Each hop records the local program transformation, the rule that justifies it, and the ($\delta$)-cost contributed to the final security bound. In the \bb case study, the Lo--Chau theorem and the CSS-code component are treated as external interface assumptions. Our verification focuses on the surrounding transformations that connect the Lo--Chau-style protocol to the implementable \bb protocol. Thus, we do not claim to verify quantum error correction itself; formal Quantum Error Correction (QEC) verification is an active and complementary direction~\cite{huang2025veriqec,feng2025stabilizercoq}. Instead, we verify the game-chain structure that turns such cryptographic and coding-theoretic inputs into the final \bb security argument.
+
+To our knowledge, this is the first highly automated, tool-supported verification of an explicit \bb security game chain under stated Lo--Chau and CSS assumptions. The contribution is not a new manual proof of \bb security, nor an attempt to automate every step of every QKD proof. Rather, it is proof infrastructure for the hidden object on which QKD security arguments rely: the sequence of security-preserving classical--quantum game transformations. By making this sequence explicit, replayable, and auditable, the framework turns a delicate handwritten proof into a structured proof script and demonstrates that substantial parts of QKD security reasoning can be automated as modular game-chain verification. In our \bb case study, the proof contains 27 mechanically verified hops, 17 of which are discovered automatically by our tool.
+
+This paper makes three contributions.
+
+First, we identify QKD security proof as a program-logical game-hopping problem and make intermediate classical--quantum games first-class proof artifacts. Each hop is represented as a local relational transformation equipped with an explicit approximation cost.
+
+Second, we develop a classical--quantum approximate rqPD framework for this setting. Its soundness rules support probabilistic classical control, quantum data, relational reasoning between neighboring games, and compositional accumulation of ($\delta$)-losses across a game chain.
+
+Third, we implement these ideas in a highly automated verifier and apply it to the Lo--Chau-to-\bb game chain. The resulting proof contains 27 mechanically verified hops, 17 of which are discovered automatically by the tool, yielding a replayable and auditable verification of the central \bb security game chain under stated Lo--Chau and CSS assumptions.
+
+
+
+
+\section{QKD Security Background}
+\label{sec:qkd-background-imported-root}
+
+\textbf{\textcolor{red}{Background: further details about QKD, BB84, threat models, and security statements (something along the lines of the current theorem 1 but much simpler; theorem 1 as it is is not readable for a broad audience). A brief and informal account of prior proofs, and a sketch of the 2000 proof. \\
+QKD: it would still make sense to include the description of BB84 in a figure. It would make section 2 more self-contained and would also help readers to follow the flow.
+\\
+Section 2: I think it would be nice to present BB84 as a program.  I also think the roadmap (Figure 1) is probably best skipped --- it takes a lot of space, it is not super informative, and it generally sounds a little unusual 
+}}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{bb84.pdf}
+  \caption{The BB84 protocol as a pipeline. The quantum transmission phase
+  feeds the classical post-processing phase, which runs over an authenticated
+  public channel and outputs the secret key.}
+  \label{fig:bb84}
+\end{figure}
+
+The \bb protocol as in \ref{fig:bb84} is a prepare-and-measure QKD protocol. Alice encodes random bits in randomly chosen bases and sends the resulting quantum states to Bob over an insecure quantum channel. Bob measures the received systems in randomly chosen bases. After the quantum transmission, Alice and Bob communicate over an authenticated public classical channel to perform sifting, parameter testing, error correction, and privacy amplification.
+
+
+
+QKD security is evaluated on the terminal classical--quantum state, which contains Alice's final key \(K_A\), Bob's final key \(K_B\), the authenticated public transcript \(L\), and Eve's quantum side information \(\mathsf E\).
+This terminal-state view captures correctness and secrecy of the generated key together. In a common presentation, correctness and secrecy are represented separately as
+\[
+\varepsilon_{\mathrm{qkd}}
+\le
+\varepsilon_{\mathrm{cor}}+\varepsilon_{\mathrm{sec}} .
+\]
+We instead use a joint real-ideal trace distance formulation over the terminal state. In the language of our system, the ideal terminal state replaces \(K_A,K_B\) with a perfectly shared uniform key while preserving \(L\) and \(\mathsf E\). 
+
+The adversary is computationally unbounded and may control the quantum channel. We write \(U_{\mathrm{channel}}\) for a unitary representation of an arbitrary admissible channel attack on the transmitted systems together with Eve's private and channel-side state. This is a dilation-based representation of a general quantum attack, not a restriction to unitary-only adversaries.
+
+
+Abort is treated separately: an adversary may make a protocol run unavailable, and this availability or robustness parameter is kept separate from the non-abort secrecy loss. Because an \(\mathbf{abort}\) branch contributes zero mass to the subnormalized terminal state, secrecy is trivially satisfied on that branch, while the abort probability is tracked separately. Accordingly, the \bb sifting bad event used below is treated as an abort event when its branch executes \(\mathbf{abort}\).
+
+The first broadly accepted unconditional-security proofs arrived much later than the protocol itself. Mayers gave a foundational proof for \bb-type QKD. Lo--Chau gave an entanglement-purification, or quantum-privacy-amplification, proof line for QKD. Shor and Preskill then gave a manual security proof: starting from an entanglement-purification protocol whose security follows the Lo--Chau proof, they used CSS-code structure to remove the quantum-computation requirement and derived security of the final prepare-and-measure \bb protocol
+\cite{bb84,lochau1999unconditional,shor2000simple,mayers2001unconditional}.
+
+Subsequent manual proofs extended this proof chain methodology to protocols with two-way classical communication and to settings with imperfect sources and detectors~\cite{gottesman2003twoway,gllp2004imperfect}. In modern QKD, composable security is commonly stated as trace-distance indistinguishability between real and ideal protocols. Ben-Or et al. connected QKD to universal composability; Renner's smooth-entropy framework and the finite-key analysis of Tomamichel et al. refined the quantitative trace-distance view~\cite{benor2005ucqkd,renner2005security,renner2008security,tomamichel2012tight,portmann2022security}. 
+
+Following the Shor--Preskill proof, this paper takes the external Lo--Chau
+entanglement-purification security theorem as the secure starting point and
+represents it as a Lo--Chau-style game \(\Pi_{\mathrm{LC}}\). Our proof-replay
+system does not reprove the entanglement-purification argument or the CSS/QEC
+facts used by Shor--Preskill. Instead, it replays the subsequent program-level game hop guided by relational rules. 
+
+Informally, the imported Lo--Chau assumption says that the real terminal state of the Lo--Chau-style game is \(\varepsilon_{\mathrm{LC}}\)-close, in trace distance, to an ideal terminal state in which Alice and Bob hold the same uniformly random \(\ell\)-bit key, independent of the public transcript and Eve's quantum side information:
+\[
+D(\rho^{\mathrm{real}}_{\mathrm{LC}},\rho^{\mathrm{ideal}}_{\mathrm{LC}})
+\le
+\varepsilon_{\mathrm{LC}} .
+\]
+The formal theorem in Appendix~\ref{app:semantics-soundness} gives the corresponding statement with the explicit initial state, channel attack, and idealization map.
+
+
+\section{Foundations}
+\label{sec:threat-model}
+\label{sec:foundations}
+
+\textbf{\textcolor{red}{Foundations: this section should describe our programming language and  the proof rules. It should also state the soundness of the rules. All the technicalities including the semantics and the proofs of soundness should be moved in appendix. Make sure that the paper really feels self-contained. right now there are several places where it feels like "oh there is this super important definition which you must really understand but it will be introduced in 20 pages"
+\\
+ Foundations: the language of imported CSS module is hard to follow. We should be more explicit (in fact also in the introduction) that it is an assumption of our work, that there is other work that reasons about QEC and that we plan to close the gap in the future. The statement of the soundness theorem should be changed to "Every provable judgment is semantically valid", with a short explanation before the theorem of what this means.
+\\
+Section 3: the terminology imported CCS module will be confusing to readers. It also feels strange to discuss the assumption before proving soundness of the logic. This is independent.
+}}
+
+This section introduces the formal source language used to display QKD games,
+the relational judgment used to verify game hops, the main proof rules used by
+those hops, and the soundness statement for the resulting proof system. The
+detailed denotational semantics, address and descriptor discipline,
+syntax-sugar expansions, and proof-system soundness details are recorded in
+Appendices~\ref{app:semantics-soundness}, \ref{app:syntax-sugar},
+and~\ref{app:judgment-rules}. The later game hops compare retained terminal
+states and record whether a hop is exact or incurs an explicit \(\delta\)-loss.
+
+\subsection{Source language for QKD games}
+\label{sec:syntax}
+
+Programs are hybrid classical--quantum commands. The primitive syntax is
+\begin{tightdisplay}
+\begin{aligned}
+S ::= {}& \mathbf{skip}\mid \mathbf{abort}
+\mid x[i]:=E
+\mid p[i]:=_\$ \mathbf{Coin\mbox{-}flip}_{\mu}\\
+\mid{}& p:=_\$\mathbf{shuffle}(m)_n
+\mid \mathbf{append}\ g'\ \mathbf{with}\ v\\
+\mid{}& L[\mathbf{next}] :=_{\mathsf{pub}} v[i]
+\mid \bar q[i]:=|0\rangle
+\mid \bar q[i]\asteq U\\
+\mid{}& S_0;S_1
+\mid x[i]:=\mathcal M[\bar q[j]]
+\mid{} \mathbf{if}\ B\rightarrow S_0,\ 
+\mathbf{else}\rightarrow S_1 .
+\end{aligned}
+\end{tightdisplay}
+Classical assignment updates an addressed classical cell. Coin flips and shuffles sample finite distributions; in particular \(p:=_\$\mathbf{shuffle}(m)_n\) samples uniformly from bit strings of length \(n\) with exactly \(m\) ones.
+The command \(L[\mathbf{next}] :=_{\mathsf{pub}} v[i]\) copies the current
+classical or probability value into the next authenticated transcript cell.
+Quantum initialization prepares \(|0\rangle\), unitary update applies the
+addressed unitary, and measurement records a classical outcome. Sequencing is
+written \(S_0;S_1\), conditionals branch on classical predicates, and
+\(\mathbf{abort}\) denotes the zero subnormalized state. Quantum values are not
+publishable by value-copy.
+
+A command denotes a transformation on classical--quantum states
+\[
+\Delta=\sum_{\sigma}\mu(\sigma)
+|\sigma\rangle\!\langle\sigma|\otimes\rho_\sigma,
+\]
+where \(\sigma\) is a well-typed store and \(\rho_\sigma\) is a density operator
+on the fixed quantum space. Indexed objects and logical views are resolved by an
+address-descriptor discipline: append and select change descriptors, not the
+underlying physical allocation, and well-formedness tracks range, compatible
+sort and length, and required address separation. The detailed descriptor model, command semantics, and derived syntax used by the
+figures are in Appendices~\ref{app:semantics-soundness}
+and~\ref{app:syntax-sugar}. 
+
+
+\subsection{Relational judgments and assertions}
+\label{sec:logic}
+
+The relational system is used only on well-typed program views. A lightweight
+typing discipline tracks the aliasing and separation facts needed by rules such
+as \textsc{Swap}, \textsc{Frame}, and the \textsc{If-Stru} rules.
+
+Assertions are projective predicates over paired logical views. Classical and
+probability equality is value equality. For paired equal-dimensional quantum
+views \(q,q'\), quantum equality is represented by the symmetric-subspace
+projector
+\[
+\equiv_{(q,q')}
+\triangleq
+=_{\mathrm{sym}}^{q,q'}
+=
+\frac12
+\left(
+I_q\otimes I_{q'}
++
+\mathsf{SWAP}_{q,q'}
+\right).
+\]
+List assertions and logical connectives are interpreted pointwise and projectively; support projectors and separability side conditions are detailed
+in Appendix~\ref{app:judgment-rules}.
+
+For c-q states \(\Delta,\Delta'\), the approximate lifting
+\[
+\Delta\, A_V^\delta\,\Delta'
+\]
+holds when there exists a witness \(\pi\) over left stores, right stores, and an
+arbitrary joint quantum state with marginals \(\Delta,\Delta'\), such that
+\[
+\Tr(A_V\pi)\ge\Tr(\pi)-\delta .
+\]
+The parameter \(\delta\) is the probability mass allowed to violate the
+postcondition; exact liftings use \(\delta=0\).
+
+A relational judgment has the form
+\[
+\Xi
+\vdash P\sim_{\delta}P':
+\Phi_V\Longrightarrow\Psi_W .
+\]
+Semantically, it means that whenever the paired initial states satisfy the
+precondition \(\Phi_V\) and the persistent symbolic facts \(\Xi\), the outputs
+of \(P\) and \(P'\) satisfy \(\Psi_W\) up to loss \(\delta\).
+Exact judgments use
+\(\delta=0\) and are written
+\[
+\Xi
+\vdash P\sim P':\Phi_V\Longrightarrow\Psi_W .
+\]
+Here \(\Xi\) stores persistent symbolic facts over paired classical branches.
+We write \(\Xi\vdash WF(V)\) when \(\Xi\) and the typing discipline establish
+range, compatible sort and length, and pairwise distinct quantum addresses where
+required.
+
+\subsection{Proof rules and approximation accounting}
+\label{sec:assert-rules}
+
+The proof rules are organized around local proof obligations. Structural exact
+rules include \textsc{Conseq}, \textsc{Weaken-\(\Xi\)}, \textsc{Frame}, \textsc{Swap},
+\textsc{Seq}, and \textsc{Comp}. \textsc{Conseq} adjusts assertions and may relax the
+loss; \textsc{Weaken-\(\Xi\)} strengthens \(\Xi\) without changing the loss; \textsc{Frame} and
+\textsc{Swap} use access or update disjointness and typing side conditions to keep independent fragments exact.
+Sequencing and composition add approximation budgets:
+\begin{tightdisplay}
+\begin{aligned}
+&\frac{\Xi\vdash P_0\sim_\delta P_1:\Phi\Rightarrow\Theta\quad
+\Xi\vdash P'_0\sim_{\delta'}P'_1:\Theta\Rightarrow\Psi}
+{\Xi\vdash
+P_0;P'_0\sim_{\delta+\delta'}P_1;P'_1:\Phi\Rightarrow\Psi},\\
+&\frac{\Xi\vdash P\sim_{\delta_1}P':\equiv_V\Rightarrow\equiv_V\quad
+\Xi\vdash P'\sim_{\delta_2}P'':\equiv_V\Rightarrow\equiv_V}
+{\Xi\vdash
+P\sim_{\delta_1+\delta_2}P'':\equiv_V\Rightarrow\equiv_V}.
+\end{aligned}
+\end{tightdisplay}
+
+Command rules cover assignment, initialization, coin flip, shuffle, unitary,
+publication, and abort. These rules are exact unless a displayed premise
+explicitly contributes loss; for example \(x[i]:=E\) pins the new classical
+value, and \(\bar q[i]\asteq U\) conjugates the assertion by \(U\). Conditional
+rules discharge branch-local entailments under the guard and its negation.
+
+Measurement rules use an explicit rule-local measurement condition. For measurements \(\mathcal M_1=\{M_1^i\}_{i=1}^m\) and \(\mathcal M_2=\{M_2^i\}_{i=1}^m\),
+\[
+\mathcal M_1\approx\mathcal M_2:\Phi_V\Longrightarrow\Psi_W
+\]
+means that each outcome branch preserves the asserted relation from \(\Phi_V\) to \(\Psi_W\). Then \textsc{Meas} produces equality of the classical outcome locations and traces out the measured views. The one-sided condition \(\mathcal M\approx\mathcal I\) is defined analogously with the right program skipped.
+
+The bad-event rule used by the figures is \textsc{UTB}. For a Boolean event
+location \(bad\), we write \(bad\) for the corresponding projector and
+\[
+\neg bad\triangleq I-bad .
+\]
+The Up-to-bad bridge carries equivalence only on the good event:
+\begin{tightdisplay}
+\textsc{UTB}\quad
+\frac{\begin{array}{c}
+\Xi\vdash
+P'_1\sim_{\delta'}P:\equiv_V\Rightarrow
+\equiv_V\land(\neg bad\otimes I)\\
+\Xi\vdash
+P\sim_\delta P':\equiv_V\Rightarrow\equiv_V
+\end{array}}
+{\Xi\vdash
+P'_1\sim_{\delta+\delta'}P':\equiv_V\Rightarrow
+\equiv_V\land(\neg bad\otimes I)}.
+\end{tightdisplay}
+In the CSS\(\leadsto\)\bb figure, the bad event is
+\[
+\mathsf{Bad}_{\mathrm{UTB}}\equiv \operatorname{length}(b')<2n,
+\qquad
+\Pr[\mathsf{Bad}_{\mathrm{UTB}}]\le\beta_{\mathsf{sift}},
+\]
+where \(b'\) is the list of positions with matching bases \(b[i]=b_2[i]\).
+This bad-event witness is internal to the proof-replay system; because the
+failure branch executes \(\mathbf{abort}\), \(\beta_{\mathsf{sift}}\) is reported as
+availability loss rather than non-abort secrecy loss.
+
+The measure-to-sample hops use \textsc{Uniform}. A state is uniform in an
+orthonormal basis \(\mathcal B=\{\ket i\}_{i=1}^{D}\) when measurement in that
+basis gives probability \(1/D\) for every outcome. For a program output
+register \(\bar q\), define the plus witness and its assertion by
+\[
+\ket{+}^{\mathcal B}_{\bar q}
+\triangleq \frac1{\sqrt D}\sum_{i=1}^{D}\ket i_{\bar q},
+\qquad
+\Phi_{\bar q}^{\mathcal B}
+\triangleq
+\ket{+}^{\mathcal B}_{\bar q}\bra{+}^{\mathcal B}_{\bar q}.
+\]
+If a projector judgment proves that the relevant output register satisfies
+\(\Phi_{\bar q}^{\mathcal B}\), then measurement in \(\mathcal B\) can be
+related to an explicit sampler. The rule used in the Lo--Chau\(\leadsto\)CSS
+figure is
+\begin{tightdisplay}
+\textsc{Uniform}\quad
+\frac{\Xi\vDash\Phi\Rightarrow \Phi_{\bar q}^{\mathcal B}
+\quad \Xi\vdash WF(\bar q[1{:}\ell])}
+{\begin{array}{c}
+\Xi\vdash
+x:=\mathcal M_{\mathcal B}[\bar q]\sim
+x':=_\$\mathbf{rand}(\ell):\Phi\\
+\Longrightarrow \equiv^{\{0,1\}^{\ell}}_{x,x'}
+\end{array}}.
+\end{tightdisplay}
+Here \(\mathbf{rand}(\ell)\) is uniform over \(\{0,1\}^{\ell}\). This rule justifies the measure-to-sample transformations highlighted in Figure~\ref{fig:lc-css-main}. Complete rule schemata and side conditions are in
+Appendix~\ref{app:judgment-rules}.
+
+
+\iffalse
+The CSS correction component is an explicit external assumption of this work.
+Our proof-replay system verifies the game hops that call this component, but it
+does not give a relational proof of CSS-code theory, syndrome-decoding, or QEC. Instead, the component is used through a fixed
+module interface covering CSS encoding, syndrome extraction, fixed decoder lookup, Pauli correction, decoding and readout, reconciliation maps, and the relevant CSS-code side conditions.
+
+This separation is deliberate. Formal verification of quantum error correction
+is an active and complementary line of work: recent systems verify QEC programs
+using dedicated assertion and program logics, Coq formalization, and automated
+verification of stabilizer-code scenarios~\cite{huang2025veriqec}; other work targets formal verification of stabilizer-code reasoning in Coq~\cite{feng2025stabilizercoq}.
+Connecting such verified QEC modules to our game-hop tool is left for future work.
+For the present case study, the retained transcript convention erases the phase
+\(z\) publication cells and is written \(L^{\setminus z}\). The detailed list of imported CSS-interface facts is in Appendix~\ref{app:css-correction}.
+\fi
+
+\subsection{Soundness}
+
+The proof system distinguishes syntactic derivability from semantic validity.
+We write
+\[
+\Xi
+\models P\sim_{\delta}P':
+\Phi_V\Longrightarrow\Psi_W
+\]
+when the judgment is valid in the denotational semantics: for every pair of
+well-typed initial c-q states satisfying the precondition \(\Phi_V\) and the
+persistent facts in \(\Xi\), the denotations of \(P\) and \(P'\) produce output
+states related by \(\Psi_W\), with violation mass at most \(\delta\). The
+programs \(P\) and \(P'\) may be full games or local program fragments placed in
+a surrounding context.
+
+\begin{theorem}[Semantic soundness]
+\label{thm:rule-soundness}
+Every provable judgment is semantically valid. That is, if
+\[
+\Xi
+\vdash P\sim_{\delta}P':
+\Phi_V\Longrightarrow\Psi_W
+\]
+is derivable from the proof rules in this section and
+Appendix~\ref{app:judgment-rules}, with all rule-local typing, aliasing,
+measurement, and separability side conditions discharged, then
+\[
+\Xi
+\models P\sim_{\delta}P':
+\Phi_V\Longrightarrow\Psi_W .
+\]
+Exact rules contribute loss \(0\); sequencing, composition, and \textsc{UTB}
+account for their displayed additive losses.
+\end{theorem}
+
+Consequently, when the proof-replay system derives a judgment relating two
+complete protocol games, the corresponding terminal-state relation holds
+semantically for those complete games, with total loss bounded by the
+accumulated losses displayed in the derivation.
+
+\section{Verified BB84 Game Chain}
+\label{sec:evaluation}
+\begingroup
+\setlength{\parskip}{0pt}
+\setlength{\abovedisplayskip}{2pt}
+\setlength{\belowdisplayskip}{2pt}
+\setlength{\abovedisplayshortskip}{1pt}
+\setlength{\belowdisplayshortskip}{1pt}
+
+This section presents the verified game chain used in the \bb case study. The
+chain starts from a Lo--Chau-style entanglement-purification game whose
+security is taken as an external theorem, and it ends at the prepare-and-measure
+\bb protocol. The proof has two parts: the first turns the Lo--Chau-style proof
+view into the CSS-code protocol, and the second turns the CSS-code protocol
+into \bb. Exact hops preserve the retained terminal QKD state over
+\((K_A,K_B,L,\mathsf E)\). The matched-basis sifting hop is exact only on the
+non-failure branch and records the sifting-failure probability as availability
+loss, not as non-abort secrecy loss.
+
+The CSS/QEC interface used in the \bb case study is an explicit external assumption. Our proof-replay system verifies the surrounding game hops that use this interface, but it does not give a relational proof of CSS-code theory, syndrome decoding, or QEC correctness. Instead, the case study uses an assumed external interface covering CSS encoding, syndrome extraction, fixed decoder lookup, Pauli correction, decoding and readout, reconciliation maps, and the relevant CSS-code side conditions. This separation is deliberate. Formal verification of quantum error correction is an active and complementary line of work, including dedicated program logics for QEC programs~\cite{huang2025veriqec} and Coq-based formalization of stabilizer-code reasoning~\cite{feng2025stabilizercoq}. Turning such QEC verification results into relational interfaces for our game-hop framework is left for future work. For the present case study, the retained-transcript convention erases the phase-frame publication cells \(z\) and is written \(L^{\setminus z}\). The detailed list of external CSS/QEC interface facts is in Appendix~\ref{app:css-correction}.
+
+The figures are meant to be read as proof maps. A game box is a protocol
+checkpoint, a colored fragment is the part changed by the adjacent hop, and the
+surrounding context is unchanged. An edge label names the rule family or
+external interface fact used to justify the hop; the figures are not additional
+source syntax. For audit, each relation box corresponds to a local judgment over
+the displayed fragment in its context:
+\[
+\mathcal J_j\;:\;
+\Xi_j
+\vdash C_j[F_j]\sim_{\delta_j}C'_j[F'_j]:
+\Phi_j\Longrightarrow\Psi_j .
+\]
+Here \(F_j,F'_j\) are the colored blocks, \(C_j,C'_j\) are the unchanged
+contexts, \(\Xi_j\) records persistent descriptor, arithmetic, and protocol
+facts, \(\Phi_j\) is the local precondition, and \(\Psi_j\) is equality of the
+retained terminal QKD state. References to an unboxed \(G_i\) denote the
+corresponding cumulative checkpoint inside the adjacent bundled edge. The
+omitted typing checks discharge the well-formedness, aliasing, and access/update
+disjointness side conditions required by the rule application.
+
+\smallskip\noindent\textbf{Common terminal states.}
+
+For a game \(G\), \(\rho^{\mathsf{term}}_{\pi}(G)\) denotes the retained
+subnormalized terminal classical--quantum state over
+\[
+(K_A,K_B,L,\mathsf E),
+\]
+where \(\pi\) records the retained-transcript convention for the compared hop.
+In the CSS \(z\)-publication elimination hop, \(L\) means \(L^{\setminus z}\).
+The figures write \(\rho^{\mathsf{term}}\) when this convention is fixed.
+Exact edges preserve this terminal state with zero trace-distance loss. The
+CSS\(\leadsto\)\bb matched-basis bridge is exact on the non-sifting-failure
+branch and records the sifting-failure probability separately as the
+availability bound \(\beta_{\mathsf{sift}}\).
+
+\smallskip\noindent\textbf{Syntax and address trace.}
+The figures use the source-language commands from Section~\ref{sec:syntax} and
+the syntax-sugar macros expanded in Appendix~\ref{app:syntax-sugar}.
+Assignment $:=$, random sampling $:=_\$$, sequencing ``$;$'', selected-unitary
+update $\bar q[I]\asteq U$, measurement \(\mathcal M[\bar q[i]]\), and
+\(\mathbf{publish:}\) are source commands. Macros such as \(P_{u,b}\),
+\(B_b\), \(M_{b\to y}\), \(\mathsf{Sift}\), \(\mathsf{Part}\), and
+\(\mathsf{Rec}\) abbreviate finite source programs; they are not additional
+semantic principles. The proof labels \(G_i,\mathcal I_i\) are relation
+checkpoints, not source syntax.
+
+The address convention keeps the \bb-style rewrites precise. Classical indices
+are local to their strings, while quantum commands may use offset blocks:
+\[
+\begin{array}{@{}l@{}}
+c_a[i],c_b[i]\ \leftrightarrow\ \bar q[2n+i]\quad(1\le i\le n),\\
+k[i],k'[i]\ \leftrightarrow\ \bar q[3n+i]\quad(1\le i\le m),\\
+b[i]\ \text{controls the basis operation on}\ \bar q[2n+i]\quad(1\le i\le 2n).
+\end{array}
+\]
+Thus \(c_a\) is indexed by \(1,\ldots,n\), and the offset is used only where a
+quantum register is addressed. In the CSS$\leadsto$\bb chain, the same
+convention lets the proof replace CSS slices \(\bar q[2n+i]\) and
+\(\bar q[3n+i]\) by a contiguous \bb transmitted view through quantum-variable
+renaming. Selection and append bind or rename existing logical views; they never
+copy an unknown quantum state.
+
+The main figure macros expand as follows. \(P_u[I]\) prepares
+computational-basis states from \(u\) over slice \(I\);
+\(P_{u,b}[I]\) chooses the computational or \(\{+,-\}\) basis from \(b\);
+\(B_b[I]\) applies \(H\) exactly on the positions selected by \(b\); and
+\(M_{b\to y}[\bar q;I]\) measures each qubit of \(I\) in the basis selected by
+\(b\) and writes the resulting string to \(y\). The sampling macros
+\(\mathbf{rand}(r)\) and \(\mathbf{shuffle}(r)_N\) are iid fair bits and uniform
+fixed-weight selectors, with the ambient length omitted when clear. The derived
+macros are selector and append loops:
+\[
+\begin{array}{@{}l@{}}
+\mathsf{Recv}_{2n}[x,b,\bar q]\equiv
+  \mathbf{select}^{4n+\lambda}\ 2n\ \mathbf{from}\ 4n+\lambda,\ \text{for }x,b,\bar q,\\
+\mathsf{Sift}^{2n}_{b,b_2}\equiv
+  \text{append positions satisfying }b[i]=b_2[i],\\
+  \qquad\text{then if }\mathbf{length}(b')\ge2n\text{ use }\mathbf{select}^{4n+\lambda}\ 2n,\\
+  \qquad\text{else abort},\\
+\mathsf{Part}^{Q}_{f}: \\\text{partition before measurement and name selected key }k,\\
+\mathsf{Part}^{C}_{f}: \text{partition measured strings and name }(c,k,c_b,k'),\\
+\mathsf{Rec}_{x-\nu_k}[k',k]: \text{run the no-publication classical maps}.
+\end{array}
+\]
+The remaining procedure macros are protocol-level abbreviations over this
+syntax: \(\mathsf{Ch}\) is a unitary channel call with Eve's workspace,
+\(\mathsf{QEC}\), \(\mathsf{Encode}\), \(\mathsf{Decode}\), and
+\(\mathsf{Rec}\) are named subprograms, and
+\(\mathrm{received},f_{\mathbf c},f_{x,b},b,b_1,b_2,x,x_1,x_2,k,k',c_a,c_b\)
+are the classical strings manipulated by those subprograms.
+
+\subsection{From Lo--Chau to the CSS-code protocol}
+
+Figure~\ref{fig:lc-css-main} gives the first part of the proof chain, from the
+entanglement-based Lo--Chau proof view to the CSS-code protocol. This part
+removes the entanglement-purification presentation, exposes the check
+measurement, replaces Bell-half measurement by uniform sampling where justified,
+moves key extraction, and uses the external CSS/QEC interface to obtain the
+CSS-code protocol. All hops in this part are exact: they preserve the retained
+terminal state with zero trace-distance loss. The endpoint equality for this
+chain is displayed after the last edge explanation. Read the figure down the
+left side, across the bottom, and up the right side.
+
+\smallskip\noindent\textbf{Figure vocabulary.}
+The backbone $\mathsf{B}_0$ is the unchanged Lo--Chau context around the colored check and key blocks: sample \(f_{\mathbf c}:=_\$\mathbf{shuffle}(n)_{2n}\) and \(b:=_\$\mathbf{rand}(2n)\), apply \(B_b\) by loops \(i=1{:}2n\) acting on \(\bar q[2n+i]\), invoke \(\mathsf{Ch}_{f_{\mathbf c}}\), publish the initial transcript, undo the basis gates, and measure Bob's check block as \(c_b[i]:=\mathcal M[\bar q[2n+i]]\) for \(1\le i\le n\). The two public transcripts are
+\[
+\begin{array}{@{}l@{}}
+\mathsf{Pub}_0=(\mathrm{received},f_{\mathbf c},b),\\
+\mathsf{Pub}_1=(\mathrm{received},f_{\mathbf c},b,x,z).
+\end{array}
+\]
+Here $\mathsf{Ch}_{f_{\mathbf c}}$ is the filter-induced channel-order command \(U_{\mathbf c}(f_{\mathbf c})\) on the transmitted qubits, the channel-side range \(\{D\}:=\bar q[4n+1{:}6n+d_{\mathsf{ch}}]:=\mathsf{Dummy}\), where \(d_{\mathsf{ch}}\) denotes the channel-side workspace slack, and Eve's workspace. The symbol \(\mathsf{Dummy}\) is proof notation for channel-side workspace that is later outside the retained proof interface; it is not a \(|0\rangle^{\otimes(2n+d_{\mathsf{ch}})}\) initialization. The later backbone \(\mathsf{B}_1\) is the same context, except that it publishes \((x,z)\) and uses the CSS front-end view.
+
+The correction names also follow the syntax layer. $\mathsf{QEC}_A$ and $\mathsf{QEC}_B$ are named QEC subprograms on Alice's and Bob's logical blocks; Alice-side key extraction writes \(k[i]\) and Bob-side key extraction writes \(k[m+i]\), so the two key halves remain separated. $\mathsf{Load}_{k[1{:}m]}$ is an offset preparation loop for the sampled key $k$, and $\mathsf{Decode}$/$\mathsf{Decode}_B$ are Bob-side CSS decoding calls. The CSS front end is therefore tracked by
+\[
+P_{c_a[1{:}n]},
+\qquad
+\mathsf{Load}_{k[1{:}m]},
+\qquad
+\mathsf{Encode}(k,x,z).
+\]
+The retained-transcript map $\pi_{\mathrm{LC/CSS}}$ identifies the Lo--Chau syndrome view with this CSS transcript view.
+
+\smallskip\noindent\textbf{Edges in Figure~\ref{fig:lc-css-main}.}
+\emph{\(\mathcal I_1\): move the check measurement.}
+The measured Alice half \(c_a:=\mathcal M[\bar q[1{:}n]]\) is moved across \(\mathsf{B}_0\). The proof uses \textsc{Swap} and \textsc{CNOT}: the moved measurement touches \(\bar q[1{:}n]\) and writes \(c_a[1{:}n]\), while \(\mathsf{B}_0\) reads \(f_{\mathbf c},b,D,\bar q_{\mathrm{eve}}\) and the transmitted slice \(\bar q[2n+1{:}4n]\). The \textsc{CNOT} rule justifies the local rewrite from an EPR correlation to a measured control bit plus the corresponding conditional \(X\) on \(\bar q[2n+i]\).
+
+\emph{\(\mathcal I_2\): classicalize check preparation.}
+The Bell-half measurement is replaced by a uniform classical sample and a direct preparation of Bob's check block:
+\[
+\mathcal M[\bar q[1{:}n]]
+\quad\leadsto\quad
+c_a:=_\$\mathbf{rand}(n);
+X_{c_a};
+P_{c_a[1{:}n]} .
+\]
+The rule is \textsc{Uniform}, preceded by the CNOT and selected-unitary syntax expansion. Its precondition is that the measured Bell half is uniform in the computational basis; the postcondition equates the sampled \(c_a[i]\) with the prepared offset qubit \(\bar q[2n+i]\). This is where the address convention matters: \(c_a\) has local coordinates \(1{:}n\), while the quantum target is \(\bar q[2n+1{:}3n]\).
+
+\emph{\(\mathcal I_3\): move key extraction.}
+The Alice-side key extraction block is moved before the channel context. This is another exact \textsc{Swap} judgment, with \textsc{Classical-Frame} or \textsc{Quantum-Frame} used for the unchanged context as appropriate. The proof obligation is that the typing side conditions and \(\Xi\) prove access and update disjointness between the moved logical-key view, \(\mathrm{received},f_{\mathbf c},b\), and Bob's post-channel check outcomes; the terminal-state comparison records \(K_A,K_B\) only after both final measurements.
+
+\emph{\(\mathcal I_4\): load an explicit CSS codeword.}
+The QEC view is rewritten as a sampled key loaded into the Bob-side logical addresses and then encoded:
+\[
+\begin{aligned}
+&\mathsf{QEC}_A;\mathsf{QEC}_B\\
+&\quad\leadsto
+k:=_\$\mathbf{rand}(m);
+\mathsf{Load}_{k[1{:}m]};
+\mathsf{Encode}_{x,z}(k);
+\mathsf{Decode}_B .
+\end{aligned}
+\]
+The rule interface combines the uniformity lemma for the logical Bell half, the
+CNOT+Uniform bridge, and the CSS purification-to-error-correction interface
+from Appendix~\ref{app:css-correction}. The intermediate expansion uses the
+external interface's private \(\mathsf{CSSSyn}_{H_Z,H_X}\) call and the
+\textsc{CSSSyn-Zero} package under its codespace and private-readout premises.
+In the intermediate QEC-expansion hop, Alice's logical key is measured as
+\(k[i]:=\mathcal M[\bar q[n+i]]\) for \(1\le i\le m\). The load loop writes
+\(k[i]\) into \(\bar q[3n+i]\), not into \(k[3n+i]\), and Bob's final
+measurement writes \(k[m+i]\).
+
+\emph{\(\mathcal I_5\): expose CSS randomizers and fold syntax.}
+This edge introduces uniformly sampled \(x,z\), publishes them, and folds direct key preparation plus \(\mathsf{Encode}_{x,z}\) into the CSS syntax sugar \(\mathsf{Encode}(k,x,z)\). It uses the CSS Frame and Error-Correction Equivalence obligation followed by the \textsc{Syntax Sugar} rule: the program presentation changes, but the retained transcript convention \(\pi_{\mathrm{LC/CSS}}\), key outputs, and adversarial system are unchanged. Therefore every edge in the Lo--Chau$\leadsto$CSS bridge is exact:
+\[
+\rho^{\mathsf{term}}_{\mathrm{LC/CSS}}(G_0)
+=
+\rho^{\mathsf{term}}_{\mathrm{LC/CSS}}(G_{\mathrm{CSS}}).
+\]
+
+\endgroup
+\begin{figure*}[!t]
+\centering
+\begingroup
+\definecolor{lcBell}{RGB}{226,239,255}
+\definecolor{lcCheck}{RGB}{224,244,232}
+\definecolor{lcMove}{RGB}{255,238,214}
+\definecolor{lcLoad}{RGB}{240,228,255}
+\definecolor{lcCss}{RGB}{255,230,238}
+\definecolor{lcPanel}{RGB}{230,240,255}
+\newcommand{\figfont}{\footnotesize}
+\newcommand{\figfrag}[2]{\begingroup\setlength{\fboxsep}{0.8pt}%
+  \ifmmode\text{\colorbox{#1}{$\textstyle #2$}}%
+  \else\colorbox{#1}{$\textstyle #2$}\fi\endgroup}
+\newcommand{\lcB}[1]{\figfrag{lcBell}{#1}}
+\newcommand{\lcC}[1]{\figfrag{lcCheck}{#1}}
+\newcommand{\lcM}[1]{\figfrag{lcMove}{#1}}
+\newcommand{\lcL}[1]{\figfrag{lcLoad}{#1}}
+\newcommand{\lcS}[1]{\figfrag{lcCss}{#1}}
+\newcommand{\glabel}[2]{{\bfseries #1}\\[-1pt]{\scshape #2}}
+\tikzset{
+  gamebox/.style={draw,rounded corners=5pt,thick,draw=black!80,fill=gray!2,
+    inner xsep=3pt,inner ysep=5pt,text width=6.55cm,align=left,font=\figfont},
+  relbox/.style={draw,rounded corners=5pt,thick,draw=black!75,fill=gray!8,
+    inner xsep=4pt,inner ysep=3pt,text width=5.55cm,align=center,font=\figfont},
+  flow/.style={-{Latex[length=3.0mm,width=2.0mm]},line width=0.95pt,
+    rounded corners=7pt,shorten <=0.4pt,shorten >=0.4pt,draw=black!82}
+}
+\begin{tcolorbox}[width=\linewidth,colback=lcPanel!18,colframe=black!45,
+  boxrule=0.6pt,arc=6pt,left=4pt,right=4pt,top=4pt,bottom=5pt,boxsep=1pt]
+\centering
+\resizebox{0.93\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+\path[use as bounding box] (-4.10,-5.95) rectangle (17.65,12.05);
+
+\node[gamebox] (g0) at (0,10.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_0$}{Bell Front End}\\[1pt]
+\lcB{\bar q[1{:}2n]\asteq H^{\otimes 2n};\ \bar q\asteq CNOT}\\[1pt]
+$\mathsf{B}_0$\\[1pt]
+\lcC{c_a := \mathcal M[\bar q[1{:}n]]}\\[1pt]
+$\mathsf{QEC}_A;\ \mathsf{QEC}_B$
+\end{tabular}};
+
+\node[relbox] (r02) at (0,6.5) {
+\[
+\begin{array}{c}
+\textsc{Expose Check Measurement}\ (2 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_0)=\rho^{\mathsf{term}}(G_2)\\[1mm]
+[\mathcal I_1]\ \textsc{CNOT}/\textsc{Swap}_{c_a}
+\end{array}
+\]};
+
+\node[gamebox] (g2) at (0,3.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_2$}{Check Isolated}\\[1pt]
+\lcC{c_a := \mathcal M[\bar q[1{:}n]]}\\[1pt]
+\lcB{\bar q[n+1{:}2n,\,3n+1{:}4n]\asteq CNOT}\\[1pt]
+\lcC{X_{c_a[1{:}n]}[\bar q[2n+1{:}3n]]}\\[1pt]
+$\mathsf{B}_0;\ \mathsf{QEC}_A;\ \mathsf{QEC}_B$
+\end{tabular}};
+
+\node[relbox] (r25) at (0,-0.5) {
+\[
+\begin{array}{c}
+\textsc{Classicalize Check Prep}\ (3 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_2)=\rho^{\mathsf{term}}(G_5)\\[1mm]
+[\mathcal I_2]\ \textsc{Uniform}/\textsc{Swap}\\[-1pt]
+\textsc{Syntax Sugar}_{c_a}
+\end{array}
+\]};
+
+\node[gamebox] (g5) at (0,-4.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_5$}{Classical Check Prep}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcB{\bar q[n+1{:}2n]\asteq H^{\otimes n}}\\[1pt]
+\lcB{\bar q[n+1{:}2n,\,3n+1{:}4n]\asteq CNOT}\\[1pt]
+\lcM{\mathsf{B}_0;\ \mathsf{QEC}_A;\ \mathsf{QEC}_B}
+\end{tabular}};
+
+\node[relbox] (r56) at (6.75,-4.0) {
+\[
+\begin{array}{c}
+\textsc{Move Key Extraction}\ (1 hop)\\[1mm]
+\rho^{\mathsf{term}}(G_5)=\rho^{\mathsf{term}}(G_6)\\[1mm]
+[\mathcal I_3]\ \textsc{Swap}_{\mathrm{QEC,key}}
+\end{array}
+\]};
+
+\node[gamebox] (g6) at (13.5,-4.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_6$}{Key Moved}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcM{\mathsf{QEC}_A;\ \text{Alice-side key extraction}}\\[1pt]
+$\mathsf{B}_0$\\[1pt]
+\lcL{\mathsf{QEC}_B;\ \text{Bob-side key extraction}}
+\end{tabular}};
+
+\node[relbox] (r610) at (13.5,-0.5) {
+\[
+\begin{array}{c}
+\textsc{Load Explicit Codeword}\ (4 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_6)=\rho^{\mathsf{term}}(G_{10})\\[1mm]
+[\mathcal I_4]\ \textsc{CSS Interface}/\textsc{CSSSyn-Zero}\\[-1pt]
+\textsc{CNOT+Uniform}
+\end{array}
+\]};
+
+\node[gamebox] (g10) at (13.5,3.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{10}$}{Explicit Codeword Load}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcL{k :=_\$ \mathbf{rand}(m)}\\[1pt]
+\lcL{\mathsf{Load}_{k[1{:}m]}\ \mathrm{on}\ \bar q[3n+1{:}3n+m]}\\[1pt]
+\lcS{\bar q[3n+1{:}4n]=\mathsf{Encode}_{x,z}(k)}\\[1pt]
+\lcL{\mathsf{B}_0;\ \mathsf{Decode}_B}
+\end{tabular}};
+
+\node[relbox] (r10css) at (13.5,6.5) {
+\[
+\begin{array}{c}
+\textsc{Expose CSS Randomizers}\ (2 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_{10})=\rho^{\mathsf{term}}(G_{\mathrm{CSS}})\\[1mm]
+[\mathcal I_5]\ \textsc{CSS Frame/EC Equiv.}\\[-1pt]
+\textsc{Syntax Sugar}
+\end{array}
+\]};
+
+\node[gamebox] (gcss) at (13.5,10.0) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{\mathrm{CSS}}$}{CSS Form}\\[1pt]
+\lcC{c_a :=_\$ \mathbf{rand}(n)}\\[1pt]
+\lcC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}\\[1pt]
+\lcS{k,x,z :=_\$ \mathbf{rand}}\\[1pt]
+\lcS{\bar q[3n+1{:}4n]=\mathsf{Encode}(k,x,z)}\\[1pt]
+$\mathsf{B}_1$\\[1pt]
+\lcS{k[m+i]:=\mathcal M[\mathsf{Decode}(\bar q[3n+1{:}4n])]}
+\end{tabular}};
+
+\draw[flow] (g0.south) -- (r02.north);
+\draw[flow] (r02.south) -- (g2.north);
+\draw[flow] (g2.south) -- (r25.north);
+\draw[flow] (r25.south) -- (g5.north);
+\draw[flow] (g5.east) -- (r56.west);
+\draw[flow] (r56.east) -- (g6.west);
+\draw[flow] (g6.north) -- (r610.south);
+\draw[flow] (r610.north) -- (g10.south);
+\draw[flow] (g10.north) -- (r10css.south);
+\draw[flow] (r10css.north) -- (gcss.south);
+\end{tikzpicture}}
+\par\smallskip
+{\figfont
+\refstepcounter{figure}\label{fig:lc-css-main}\textbf{Figure~\thefigure.}
+Main hopping record for the Lo--Chau$\leadsto$CSS chain. Game boxes show only proof-relevant fragments; matching colors identify corresponding fragments across adjacent checkpoints, and relation boxes name the rule or side-condition family discharged in the surrounding text.}
+\end{tcolorbox}
+\endgroup
+\end{figure*}
+
+\begingroup
+\setlength{\parskip}{0pt}
+\setlength{\abovedisplayskip}{2pt}
+\setlength{\belowdisplayskip}{2pt}
+\setlength{\abovedisplayshortskip}{1pt}
+\setlength{\belowdisplayshortskip}{1pt}
+
+\subsection{From the CSS-code protocol to BB84}
+
+Figure~\ref{fig:css-bb84-main} gives the second part of the proof chain, from
+the CSS-code protocol to the \bb prepare-and-measure form. This part removes the
+CSS-code presentation, expands the check and key bases, replaces the CSS key
+block by prepare-and-measure behavior plus classical reconciliation, aligns the
+channel interface, exposes the received set, and then performs matched-basis
+sifting. The chain is exact on the non-sifting-failure branch, and
+\(\beta_{\mathsf{sift}}\) is recorded separately as availability loss. For this
+chain, \(G_0\) is the CSS-code protocol, \(G_i\) for \(1\le i\le14\) denotes
+the \(i\)-th cumulative reference checkpoint, and \(G_{\mathrm{BB84}}\) is the
+target protocol. The figure bundles several adjacent checkpoints for
+readability; any unnumbered refinement box is an internal sub-derivation of the
+displayed edge, not an additional report-level game. The endpoint transcripts
+are
+\[
+\begin{array}{@{}l@{}}
+\mathsf{Pub}_{\mathrm{CSS}}
+  =(\mathrm{received},f_{\mathbf c},b,x,z),\\
+\mathsf{Pub}_{\mathrm{BB84}}
+  =(\mathrm{received},b,b_2,f_{x,b},x-\nu_k).
+\end{array}
+\]
+For checkpoints before \(b_2\) is a source-program variable, output
+compatibility is obtained by the report's public-output extension convention:
+both compared terminal states are extended by the same independent uniform
+public \(b_2\) block, placed in the reserved transcript slot immediately after
+the \(b\)-block, so that \(L\) is interpreted in the \bb-compatible labeled
+order
+\((\mathrm{received},b,b_2,f_{x,b},x-\nu_k)\). This is not a late
+\(\mathbf{publish: }b_2\) command executed by the earlier CSS-side game, not
+transcript erasure, and not duplicate publication of \(b\). Since
+\(\Ideal_\ell\) replaces only \(K_A,K_B\), the same independent public
+\(b_2\)-extension is present on the real and ideal sides and contributes zero
+secrecy loss.
+
+\begin{figure*}[!p]
+\centering
+\begingroup
+\definecolor{cbCheck}{RGB}{226,239,255}
+\definecolor{cbKey}{RGB}{224,244,232}
+\definecolor{cbChannel}{RGB}{240,228,255}
+\definecolor{cbRecv}{RGB}{255,238,214}
+\definecolor{cbSift}{RGB}{222,246,246}
+\definecolor{cbMeasure}{RGB}{255,230,238}
+\definecolor{cbBob}{RGB}{255,247,210}
+\definecolor{cbPanel}{RGB}{238,246,244}
+\newcommand{\figfont}{\footnotesize}
+\newcommand{\figfrag}[2]{\begingroup\setlength{\fboxsep}{0.8pt}%
+  \ifmmode\text{\colorbox{#1}{$\textstyle #2$}}%
+  \else\colorbox{#1}{$\textstyle #2$}\fi\endgroup}
+\newcommand{\cbC}[1]{\figfrag{cbCheck}{#1}}
+\newcommand{\cbK}[1]{\figfrag{cbKey}{#1}}
+\newcommand{\cbU}[1]{\figfrag{cbChannel}{#1}}
+\newcommand{\cbR}[1]{\figfrag{cbRecv}{#1}}
+\newcommand{\cbS}[1]{\figfrag{cbSift}{#1}}
+\newcommand{\cbM}[1]{\figfrag{cbMeasure}{#1}}
+\newcommand{\cbB}[1]{\figfrag{cbBob}{#1}}
+\newcommand{\glabel}[2]{{\bfseries #1}\\[-1pt]{\scshape #2}}
+\tikzset{
+  gamebox/.style={draw,rounded corners=5pt,thick,draw=black!80,fill=gray!2,
+    inner xsep=3pt,inner ysep=5pt,text width=6.55cm,align=left,font=\figfont},
+  relbox/.style={draw,rounded corners=5pt,thick,draw=black!75,fill=gray!8,
+    inner xsep=4pt,inner ysep=3pt,text width=5.55cm,align=center,font=\figfont},
+  flow/.style={-{Latex[length=3.0mm,width=2.0mm]},line width=0.95pt,
+    rounded corners=7pt,shorten <=0.4pt,shorten >=0.4pt,draw=black!82}
+}
+\begin{tcolorbox}[width=\linewidth,colback=cbPanel!18,colframe=black!45,
+  boxrule=0.6pt,arc=6pt,left=4pt,right=4pt,top=4pt,bottom=5pt,boxsep=1pt]
+\centering
+\resizebox{0.93\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+\path[use as bounding box] (-4.10,-10.35) rectangle (17.65,17.60);
+
+\node[gamebox] (g0) at (0,14.9) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_0$}{CSS Form}\\[1pt]
+$\mathsf{CSS}_{\mathrm{rand}}$\\
+$\cbC{P_{c_a[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}$\\
+$\cbK{\bar q[3n+1{:}4n]=\mathsf{Encode}(k,x,z)}$\\
+$f_{\mathbf c}:=_\$\mathbf{shuffle}(n)_{2n};\;b:=_\$\mathbf{rand}(2n)$\\
+$\cbC{B_{b[1{:}n]}[\bar q[2n+1{:}3n]]}$\\
+$\cbK{B_{b[n+1{:}2n]}[\bar q[3n+1{:}4n]]};\;\mathsf{Ch}^{\mathrm{CSS}}_{f_{\mathbf c}}$\\
+$\mathbf{publish: }\mathrm{received},\,f_{\mathbf c},\,b,\,x,\,z$\\
+$\mathsf{Decode};\;\text{final key measurement}$
+\end{tabular}};
+
+\node[relbox] (r03) at (0,11.05) {
+\[
+\begin{array}{c}
+\textsc{Expand Check Basis}\ (3 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_0)=\rho^{\mathsf{term}}(G_3)\\[1mm]
+[\mathcal I_1]\ \textsc{Swap}/\textsc{If-Stru}\\[-1pt]
+\textsc{Syntax Sugar}
+\end{array}
+\]};
+
+\node[gamebox] (g3) at (0,7.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_3$}{Check Expanded}\\[1pt]
+$\mathsf{CSS}_{\mathrm{rand}}$\\
+$\cbC{P_{c_a,b[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}$\\
+$\cbK{\bar q[3n+1{:}4n]=\mathsf{Encode}(k,x,z)}$\\
+$f_{\mathbf c}:=_\$\mathbf{shuffle}(n)_{2n};\;b:=_\$\mathbf{rand}(2n)$\\
+$\cbK{B_{b[n+1{:}2n]}[\bar q[3n+1{:}4n]]};\;\mathsf{Ch}^{\mathrm{CSS}}_{f_{\mathbf c}}$\\
+$\mathbf{publish: }\mathrm{received},\,f_{\mathbf c},\,b,\,x,\,z$\\
+$\cbC{M_{b[1{:}n]\to c_b}[\bar q[2n+1{:}3n]]}$
+\end{tabular}};
+
+\node[relbox] (r36) at (0,3.35) {
+\[
+\begin{array}{c}
+\textsc{Expand Key Basis}\ (3 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_3)=\rho^{\mathsf{term}}(G_6)\\[1mm]
+[\mathcal I_2]\ \textsc{Swap}/\textsc{CSS Phase-Frame}\\[-1pt]
+\textsc{If-Stru}/\textsc{Syntax Sugar}
+\end{array}
+\]};
+
+\node[gamebox] (g6) at (0,-0.5) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_6$}{Key Normalized}\\[1pt]
+$\cbC{c_a:=_\$\mathbf{rand}(n)};\;\cbK{x:=_\$\mathbf{rand}(n)}$\\
+$\cbC{b[1{:}n]};\;\cbK{b[n+1{:}2n]}\ :=_\$\mathbf{rand}$\\
+$\cbC{P_{c_a,b[1{:}n]}\ \mathrm{on}\ \bar q[2n+1{:}3n]}$\\
+$\cbK{P_{x,b[n+1{:}2n]}\ \mathrm{on}\ \bar q[3n+1{:}4n]}$\\
+$\cbU{f_{\mathbf c}:=_\$\mathbf{shuffle}(n)_{2n};\ \mathsf{Ch}^{\mathrm{CSS}}_{f_{\mathbf c}}}$\\
+$\cbU{\mathbf{publish: }\mathrm{received},\,f_{\mathbf c},\,b}$\\
+$\cbC{M_{b[1{:}n]\to c_b}[\bar q[2n+1{:}3n]]}$\\
+$\cbK{M_{b[n+1{:}2n]\to k'}[\bar q[3n+1{:}4n]]}$\\
+$\cbK{x-\nu_k:=_\$\mathbf{rand}(k_x);\;\mathbf{publish: }x-\nu_k}$\\
+$\cbK{\mathsf{Rec}_{x-\nu_k}[k',x]}$
+\end{tabular}};
+
+\node[relbox] (r611) at (0,-4.35) {
+\[
+\begin{array}{c}
+\textsc{Unify Channel Interface}\ (5 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_6)=\rho^{\mathsf{term}}(G_{11})\\[1mm]
+[\mathcal I_3]\ \textsc{Swap}/\textsc{Renaming}\\[-1pt]
+\textsc{Channel Order}/\textsc{Filtered Selection}
+\end{array}
+\]};
+
+\node[gamebox] (g11) at (0,-8.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{11}$}{Population Extended}\\[1pt]
+$a_{x,b}:=_\$\mathbf{shuffle}(2n)_{4n+\lambda}$\\
+$x,b:=_\$\mathbf{rand}(4n+\lambda,a_{x,b})$\\
+$\cbR{P_{x,b}[1{:}4n+\lambda]}$\\
+$\cbR{\text{all }4n+\lambda\text{ positions remain \bb-prepared}}$\\
+$\cbU{\mathsf{Ch}^{\mathrm{BB84}}}$\\
+$\cbU{\mathbf{publish: }\mathrm{received},\,b}$\\
+$\cbR{\text{append positions with }a_{x,b}[i]=1}$\\
+$\cbU{f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\ \mathbf{publish: }f_{x,b}}$\\
+$\cbU{\mathsf{Part}^{Q}_{f_{x,b}}[x',\bar q']}$\\
+$\cbU{M_{b'\to c_b};\;M_{b'\to k'};\;x-\nu_k:=_\$\mathbf{rand}(k_x)}$\\
+$\cbU{\mathbf{publish: }x-\nu_k;\;\mathsf{Rec}_{x-\nu_k}[k',k]}$
+\end{tabular}};
+
+\node[relbox] (r1113) at (6.75,-8.2) {
+\[
+\begin{array}{c}
+\textsc{Expose Received Set}\ (2 hops)\\[1mm]
+\rho^{\mathsf{term}}(G_{11})=\rho^{\mathsf{term}}(G_{13})\\[-1pt]
+\text{after public-output }b_2\text{ extension}\\[1mm]
+[\mathcal I_4]\ \textsc{Swap}/\textsc{Select Syntax Sugar}\\[-1pt]
+\textsc{Bob Basis}
+\end{array}
+\]};
+
+\node[gamebox] (g13) at (13.5,-8.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{13}$}{Bob Basis Added}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$\cbR{P_{x,b}[1{:}4n+\lambda]}$\\
+$\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\mathbf{publish: }\mathrm{received}$\\
+$\cbS{b_2:=_\$\mathbf{rand}(4n+\lambda);\ \mathbf{publish: }b,b_2}$\\
+$\cbR{(x',b',\bar q'):=\mathbf{select}^{4n+\lambda}\ 2n\ \mathbf{from}\ 4n+\lambda}$\\
+$f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\;\mathbf{publish: }f_{x,b}$\\
+$\cbS{\mathsf{Part}^{Q}_{f_{x,b}}[x',\bar q']}$\\
+$M_{b'\to c_b};\;M_{b'\to k'};\;x-\nu_k:=_\$\mathbf{rand}(k_x)$\\
+$\mathbf{publish: }x-\nu_k;\;\mathsf{Rec}_{x-\nu_k}[k',k]$
+\end{tabular}};
+
+\node[relbox] (r1315) at (13.5,-4.35) {
+\[
+\begin{array}{c}
+\textsc{Matched-Basis Sifting}\ (1 hop)\\[1mm]
+\rho^{\mathsf{term}}_{\neg\mathsf{sift\mbox{-}fail}}(G_{13})=\rho^{\mathsf{term}}(G_{14})\\[-1pt]
+\beta_{\mathsf{sift}}\ \text{availability}\\[1mm]
+[\mathcal I_5]\ \textsc{UTB}/\textsc{Up-to-Bad}_{b_2}
+\end{array}
+\]};
+
+\node[gamebox] (g15) at (13.5,-0.5) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{14}$}{Matched-Basis Sifting}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$P_{x,b}[1{:}4n+\lambda];\;\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\mathbf{publish: }\mathrm{received}$\\
+\cbS{b_2:=_\$\mathbf{rand}(4n+\lambda);\;\mathbf{publish: }b,b_2}\\
+\cbS{\mathsf{Sift}^{2n}_{b,b_2}[x,\bar q]}\\
+$f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\;\mathbf{publish: }f_{x,b}$\\
+\cbM{\mathsf{Part}^{Q}_{f_{x,b}}[x_1,\bar q_1]}\\
+\cbM{M_{b_1\to c_b};\;M_{b_1\to k'};\;x-\nu_k:=_\$\mathbf{rand}(k_x)}\\
+\cbM{\mathbf{publish: }x-\nu_k;\;\mathsf{Rec}_{x-\nu_k}[k',k]}
+\end{tabular}};
+
+\node[relbox] (r1517) at (13.5,3.35) {
+\[
+\begin{array}{c}
+\textsc{Internal Refinement}\\[1mm]
+\text{inside }G_{14}\leadsto G_{\mathrm{BB84}}\\[1mm]
+\textsc{Meas}/\textsc{Partition}
+\end{array}
+\]};
+
+\node[gamebox] (g17) at (13.5,7.2) {
+\begin{tabular}{@{}l@{}}
+\glabel{Internal}{Measure Before Partition}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$P_{x,b}[1{:}4n+\lambda];\;\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\cbB{x-\nu_k:=_\$\mathbf{rand}(k_x)}$\\
+$\mathbf{publish: }\mathrm{received}$\\
+$b_2:=_\$\mathbf{rand}(4n+\lambda);\;\mathbf{publish: }b,b_2$\\
+$\cbB{\mathsf{Sift}^{2n}_{b,b_2}[x,\bar q]}$\\
+$\cbB{M_{b_1\to x_2}[\bar q_1;1{:}2n]}$\\
+$\cbM{\mathsf{Part}^{C}_{f_{x,b}}[x_1,x_2]}$\\
+$\mathbf{publish: }x-\nu_k;\;\mathsf{Rec}_{x-\nu_k}[k',k]$
+\end{tabular}};
+
+\node[relbox] (r17b) at (13.5,11.05) {
+\[
+\begin{array}{c}
+\textsc{\bb Normalization}\ (1 hop)\\[1mm]
+\rho^{\mathsf{term}}(G_{14})=\rho^{\mathsf{term}}(G_{\mathrm{BB84}})\\[1mm]
+[\mathcal I_6]\ \textsc{Swap}/\textsc{Meas}/\textsc{If-Stru}
+\end{array}
+\]};
+
+\node[gamebox] (gb) at (13.5,14.9) {
+\begin{tabular}{@{}l@{}}
+\glabel{Game $G_{\mathrm{BB84}}$}{\bb Form}\\[1pt]
+$\mathsf{BB84}_{\mathrm{rand}}$\\
+$P_{x,b}[1{:}4n+\lambda];\;\mathsf{Ch}^{\mathrm{BB84}}$\\
+$\cbB{x-\nu_k:=_\$\mathbf{rand}(k_x)}$\\
+$\mathbf{publish: }\mathrm{received};\;b_2:=_\$\mathbf{rand}(4n+\lambda)$\\
+$\cbB{M_{b_2\to x'}[\bar q;1{:}4n+\lambda]}$\\
+$\mathbf{publish: }b,b_2$\\
+\cbB{(b_1,x_1,x_2):=\mathsf{Sift}^{2n}_{b,b_2}[x,x']}\\
+\cbB{\text{using }\mathbf{select}^{4n+\lambda}\text{ else abort}}\\
+$f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n};\;\mathbf{publish: }f_{x,b}$\\
+$\mathsf{Part}^{C}_{f_{x,b}}[x_1,x_2];\;\mathbf{publish: }x-\nu_k$\\
+$\mathsf{Rec}_{x-\nu_k}[k',k]$
+\end{tabular}};
+
+\draw[flow] (g0.south) -- (r03.north);
+\draw[flow] (r03.south) -- (g3.north);
+\draw[flow] (g3.south) -- (r36.north);
+\draw[flow] (r36.south) -- (g6.north);
+\draw[flow] (g6.south) -- (r611.north);
+\draw[flow] (r611.south) -- (g11.north);
+\draw[flow] (g11.east) -- (r1113.west);
+\draw[flow] (r1113.east) -- (g13.west);
+\draw[flow] (g13.north) -- (r1315.south);
+\draw[flow] (r1315.north) -- (g15.south);
+\draw[flow] (g15.north) -- (r1517.south);
+\draw[flow] (r1517.north) -- (g17.south);
+\draw[flow] (g17.north) -- (r17b.south);
+\draw[flow] (r17b.north) -- (gb.south);
+\end{tikzpicture}}
+\par\smallskip
+{\figfont
+\refstepcounter{figure}\label{fig:css-bb84-main}\textbf{Figure~\thefigure.}
+Main hopping record for the CSS$\leadsto$\bb chain. Numbered game boxes are selected paper-level \(G_i\) checkpoints aligned with the reference sequence; unboxed \(G_i\) references denote cumulative checkpoints inside bundled edges, and the unnumbered internal box is only a refinement inside the final \(G_{14}\leadsto G_{\mathrm{BB84}}\) edge. The matched-basis sifting rule is exact on the non-failure branch and reports $\beta_{\mathsf{sift}}$ as availability.}
+\end{tcolorbox}
+\endgroup
+\end{figure*}
+
+\smallskip\noindent\textbf{Figure vocabulary.}
+The source $\mathsf{CSS}_{\mathrm{rand}}$ samples \(c_a,k,x,z\), prepares \(P_{c_a}\) and \(\mathsf{Encode}(k,x,z)\), samples \(f_{\mathbf c}:=_\$\mathbf{shuffle}(n)_{2n}\), and publishes \((\mathrm{received},f_{\mathbf c},b,x,z)\). After CSS Phase-Frame Elimination, \(x-\nu_k\) replaces the CSS coset publication and the proof distinguishes raw strings from final keys \(K_A,K_B\). Its \bb counterpart, \(\mathsf{BB84}_{\mathrm{rand}}\), samples \(x,b\) over \(4n+\lambda\) candidate positions, where \(\lambda\) is the \bb population-length slack. It then introduces Bob's independent basis string \(b_2\) and keeps only matched-basis positions. The two channel names denote the same adversary interaction under two syntax-level interfaces:
+\[
+\mathsf{Ch}^{\mathrm{CSS}}_{f_{\mathbf c}}
+\quad\Longleftrightarrow\quad
+\mathsf{Ch}^{\mathrm{BB84}} .
+\]
+This equivalence uses the filter-induced channel-order sugar from Section~\ref{sec:syntax}: the filter only changes the addressed order of transmitted systems, while Eve's register is carried through the fixed \(U_{\mathrm{channel}}\). The \(G_{11}\) population extension uses \(a_{x,b}:=_\$\mathbf{shuffle}(2n)_{4n+\lambda}\); the unboxed \(G_{12}\) checkpoint rewrites that filter as descriptor-level selection of \(2n\) received positions from \(4n+\lambda\). This ordinary received-position selection renames retained triples as \(x',b',\bar q'\). It is distinct from the later matched-basis sifting macro.
+
+The \(G_{13}\) checkpoint introduces independent public Bob-basis randomness \(b_2\). For comparisons from earlier checkpoints, the terminal transcript is first made output-compatible by a public-output extension that fills the reserved \(b_2\) block in the labeled transcript order \((\mathrm{received},b,b_2,f_{x,b},x-\nu_k)\). This is not a source-level late publication by \(G_{11}\), not erasure of transcript entries, and not duplicate publication of \(b\). Within a single displayed program, \(b\) is copied into \(L\) only once, and repeated occurrences of \(b\) across different boxes are alternative standalone checkpoint presentations. The matched-basis sifting macro appends positions satisfying \(b[i]=b_2[i]\) and keeps \(2n\) matched positions on the good event,
+\[
+\mathsf{Sift}^{2n}_{b,b_2}:\ (x,b,\bar q)\mapsto(x',b',\bar q'),
+\qquad
+\operatorname{length}(b')\ge2n .
+\]
+The \(G_{14}\) and final \bb displays make this good event executable by using \(\mathbf{select}^{4n+\lambda}\ 2n\ \mathbf{from}\ \mathbf{length}(b')\) with an explicit \(\mathbf{else}\rightarrow\mathbf{abort}\) branch. The received and sifted quantum registers are aliases produced by \(\mathbf{select}\) and \(\mathbf{append}\), so the proof never copies an unknown quantum state. Finally, \(\mathsf{Part}^{Q}_{f_{x,b}}\) partitions retained qubits and the aligned classical string into check values and selected key values, naming Alice's selected key list \(k\); \(\mathsf{Part}^{C}_{f_{x,b}}\) partitions measured strings afterward and names Bob's selected key list \(k'\). The source command \(x-\nu_k:=_\$\mathbf{rand}(k_x);\ \mathbf{publish: }x-\nu_k\) creates the public bit-correction information retained in \(L\). The macro \(\mathsf{Rec}_{x-\nu_k}\) is pure classical post-processing with this already-published value, computing \(k_b=\mathsf{qecBob}(k',x-\nu_k)\) and \(k_a=\mathsf{qecAlice}(k,x-\nu_k)\) without publishing. In the earlier unboxed \(G_{7}\) merged view, the same Alice-side input is written as \(x[n+1{:}2n]\).
+
+\smallskip\noindent\textbf{Edges in Figure~\ref{fig:css-bb84-main}.}
+\emph{\(\mathcal I_1\): expand the check basis.}
+The first bundle moves \(b:=_\$\mathbf{rand}(2n)\) early, splits the check and key basis loops, and then fuses the CSS check preparation, basis rotation, and Bob-side undo and measurement into \bb check preparation and basis-dependent measurement:
+\[
+\begin{aligned}
+&P_{c_a};\mathsf B_{b[1{:}n]};M\\
+&\qquad\leadsto
+P_{c_a,b[1{:}n]};M_{b[1{:}n]\to c_b}.
+\end{aligned}
+\]
+The proof uses \textsc{Swap}, \textsc{If-Stru}, the \(\{+,-\}\) preparation and measurement sugar, and the measurement condition for the two guarded branches. The side condition is index alignment: \(b[i]\) and \(c_a[i]\) are local classical coordinates, while the actual check qubit is \(\bar q[2n+i]\). The selector \(f_{\mathbf c}:=_\$\mathbf{shuffle}(n)_{2n}\) remains the fixed-weight channel filter.
+
+\emph{\(\mathcal I_2\): expand the key basis and eliminate CSS code structure.}
+The CSS key block is replaced by direct \bb preparation, Bob measurement in the same basis, and classical reconciliation:
+\[
+\begin{aligned}
+&\mathsf{Encode}/\mathsf{Decode}\\
+&\qquad\leadsto
+P_{x,b[n+1{:}2n]};
+M_{b[n+1{:}2n]\to k'};
+\mathsf{Rec}_{x-\nu_k}.
+\end{aligned}
+\]
+This edge discharges CSS Phase-Frame Elimination: the CSS encoding and decoding view and the prepare-and-measure view induce the same retained terminal state once \(x-\nu_k\) is published and the \(z\)-publication cells are fixed-erased from the comparison. The CSS-code protocol itself is still the game where \(z\) is public; the next game keeps \(z\) private and averages it out under the phase-frame averaging theorem. The \(G_{7}\) merge then repacks \(c_a\) and the key-side raw string into \(x:=_\$\mathbf{rand}(2n)\), repacks basis choices into \(b:=_\$\mathbf{rand}(2n)\), and uses \(\mathsf{qecAlice}(x[n+1{:}2n],x-\nu_k)\). The key-side basis bits \(b[n+i]\) control \(\bar q[3n+i]\), so the proof again uses local distribution indices with explicit quantum offsets.
+
+\emph{\(\mathcal I_3\): unify the channel interface.}
+The check and key payloads are merged into a single ordered length-\(2n\) \bb payload, \(f_{\mathbf c}\) is moved to an earlier exact shuffle point only while no displayed command still reads it, and then the proof switches to \(f_{x,b}:=_\$\mathbf{shuffle}(n)_{2n}\) for the later check/key partition. The command \(U_{\mathbf c}(f_{\mathbf c})\) is expanded as filter-induced channel-order syntax sugar into the fixed channel command \(U_{\mathrm{channel}}\), not justified as a standalone relational swap. The supporting judgment uses \textsc{Swap}, quantum-variable renaming, the filter-induced channel-order side condition, and filtered selection: after renaming, the same addressed systems enter Eve's channel in the same order, \(f_{x,b}\) only controls the later check/key partition, and the terminal-state convention forgets only presentation-specific names.
+
+\emph{\(\mathcal I_4\): expose the received set.}
+The selected received positions are made explicit by introducing \(a_{x,b}:=_\$\mathbf{shuffle}(2n)_{4n+\lambda}\), extending \(x,b,\bar q\) to the \(4n+\lambda\) candidate population, and then rewriting the filter loop as \(\mathbf{select}^{4n+\lambda}\ 2n\ \mathbf{from}\ 4n+\lambda\) for \(x,b,\bar q\). Append binds descriptors for all indexed objects, including classical and quantum lists, so the received qubit list \(\bar q'\) is a valid \bb view of the same systems rather than a copy of them. Positions not retained later are still prepared as \bb states before \(U_{\mathrm{channel}}\); they are not changed into dummy inputs after channel entry.
+
+\emph{\(\mathcal I_5\): matched-basis sifting.}
+This is the only branch with availability accounting. The edge uses the
+already public \(b_2\) block from the \(G_{13}\) checkpoint and replaces
+arbitrary received selection by matched-basis sifting using the source
+condition \(b[i]=b_2[i]\). After appending matched positions, the displayed
+source uses \(\mathbf{if}\ \mathbf{length}(b')\ge2n\) then
+\(\mathbf{select}^{4n+\lambda}\ 2n\ \mathbf{from}\ \mathbf{length}(b')\),
+else \(\mathbf{abort}\). The event is
+\[
+\mathsf{sift\mbox{-}fail}
+  =\{\operatorname{length}(b')<2n\},
+\qquad
+\Pr[\mathsf{sift\mbox{-}fail}]
+\le
+\beta_{\mathsf{sift}} .
+\]
+The \textsc{UTB} rule proves equality on \(\neg\mathsf{sift\mbox{-}fail}\);
+the displayed probability is recorded separately as availability loss because
+the failure branch executes \(\mathbf{abort}\). The source condition is kept as
+\(b[i]=b_2[i]\) throughout the figure and proof ledger.
+
+\emph{Internal refinement: measure before partition.}
+Inside the final \(G_{14}\leadsto G_{\mathrm{BB84}}\) edge, one internal
+refinement partitions measured strings after measurement:
+\[
+\mathsf{Part}^{Q}_{f_{x,b}};\ M_{b_1\to(c_b,k')}
+\quad\leadsto\quad
+M_{b_1\to x_2};\ \mathsf{Part}^{C}_{f_{x,b}} .
+\]
+The rule is \textsc{Meas} with a classical partition side condition: \(f_{x,b}\) determines only the output ordering, and later code uses the measured classical outcomes rather than the unmeasured quantum registers. After this point, \(k\) and \(k'\) are Alice and Bob selected key lists, so the final reconciliation calls are \(\mathsf{qecAlice}(k,x-\nu_k)\) and \(\mathsf{qecBob}(k',x-\nu_k)\).
+
+\emph{\(\mathcal I_6\): \bb normalization.}
+The endpoint moves Bob's basis measurement over the full candidate block before the final sifting presentation. This is the report-level \(G_{14}\leadsto G_{\mathrm{BB84}}\) edge; the measure-before-partition display in the figure is only an internal refinement of this edge. The rewrite uses \textsc{Swap}, \textsc{If-Stru}, and measurement-order side conditions. The address model is essential here: the final \(x'_1,x'_2\) strings are descriptor appends of measured-outcome addresses, while the earlier \(q_1,q_c,q_k\) lists were only renamed quantum views. On the non-sifting-failure branch, the final terminal-state relation is
+\[
+\frac12\left\|
+  \rho^{\mathsf{term}}_{\mathrm{CSS/BB84}}(G_{\mathrm{CSS}})
+  -
+  \rho^{\mathsf{term}}_{\mathrm{CSS/BB84}}(G_{\mathrm{BB84}})
+\right\|_1
+=0,
+\]
+with \(\beta_{\mathsf{sift}}\) reported separately as availability loss.
+
+\endgroup
+
+\smallskip
+\section{Implementation and Evaluation}
+
+\textbf{\textcolor{red}{5. rename as Implementation and evaluation, explain that the proof is not done for an arbitrary number of bits
+\\
+Implementation: our tool is a little non-standard compared to other implementations of relational logic, so we should have a paragraph that explains the tool design (we should briefly explain why we did not implement a tool like quantum easycrypt).
+\\
+Section 5: there is no good explanation of the rationale behind the tool, and how the tool and the logic relate. This is a main weakness of the paper.
+}}
+
+The implementation is a QKD-specific proof-replay engine for finite instantiations of the two case-study game chains. It does not mechanize a universally quantified proof for all bit lengths. Its inputs are protocol descriptions, generated symbolic artifacts, hop scripts, rewrite policies, and side-condition discharge information. Its outputs are a replay log and optional proof-audit artifacts recording the applied rules, generated obligations, discharged side conditions, and points where manual guidance entered. Thus, the paper proof is parameterized, while the implementation replays derivations over finite artifacts and records the symbolic availability term introduced by the \textsc{UTB} sifting bridge.
+
+The tool is intentionally not a quantum EasyCrypt-style proof assistant. EasyCrypt-style systems provide an interactive environment for code-based cryptographic games~\cite{barthe2011computer,easycrypt}; building an analogous interactive environment for QKD game-chain proofs is a longer-term direction. The reason is that the implementation problem in this paper is not interactive proof development from first principles, but faithful replay of concrete program transformations obtained by making a pen-and-paper QKD proof explicit as intermediate games. Our implementation therefore follows an artifact-centric design tailored to the two game chains studied in this paper. Protocol modules generate symbolic QASM and schema files; these artifacts are parsed into canonical ASTs and then loaded into deterministic statement spines. The proof engine works over these spines using rule-driven backward search, swap normalization, structural rules, and explicit side-condition discharge. This design makes replay auditable through AST hashes, spine hashes, rewrite logs, obligations, and proof-audit artifacts, but it is less general than a full interactive proof assistant.
+
+The implementation mirrors the formal objects in Sections~\ref{sec:syntax}--\ref{sec:assert-rules}. The canonical AST and spine representation are the implementation-level form of the source programs introduced in Section~\ref{sec:syntax}; a pair of spines instantiates the programs \(P,P'\) in a relational judgment. A proof goal stores the precondition, postcondition, context facts \(\Xi\), and the current \(\delta\)-budget. Rule implementations correspond to the proof rules of Section~\ref{sec:assert-rules}: they either discharge a goal, produce smaller subgoals, or emit side-condition obligations. The replay log is not a separate semantic argument; it is an implementation-level trace of a syntactic derivation whose semantic meaning is supplied by Theorem~\ref{thm:rule-soundness}. Proof-audit artifacts may expose applications of structural rules such as \textsc{Seq}, which explains how local hops are composed into longer game-chain derivations.
+
+The replay runs exercise both case-study families: the Lo--Chau-to-CSS chain and the CSS-to-\bb chain. The automated runs in both chains use \(n_{\mathrm{pairs}}=14\) and \(p=0.1\); the script-guided \textsc{UTB} bridge run uses \(n_{\mathrm{pairs}}=28\) and \(p=0.1\). The reports record rewrite decisions, rule traces, proof obligations, and the symbolic sifting availability bound used by the \textsc{UTB} bridge.
+
+Representative exact derivations replayed by the tool include the first Lo--Chau swap normalization (one step, \(\delta=0\)), the \(2\leadsto3\) derivations driven by \textsc{Init-Quantum} and \textsc{UT} rules (42 steps each, \(\delta=0\)), the \(9\leadsto10\) variable-renaming identification, and the CSS importer step into the \bb chain (two steps, \(\delta=0\)). The \(13\leadsto14\) \bb \textsc{UTB} bridge is the main availability-accounting derivation; it records 131 proof nodes and uses the symbolic sifting bound below. The source protocol notation \(4n+\lambda\) names the \bb candidate bit length.
+
+For independent Alice and Bob bases over \(N=4n+\lambda\) candidate positions, the matched-count random variable \(Y\) follows \(\mathrm{Binomial}(N,1/2)\). The exact sifting-failure probability for the displayed matched-basis bridge is
+\[
+\beta_{\mathsf{sift}}
+=\Pr[Y<2n]
+=\sum_{j=0}^{2n-1}\binom{N}{j}2^{-N}.
+\]
+It is recorded as availability loss when the failure branch executes
+\(\mathbf{abort}\), not as a non-abort secrecy loss.
+
+Structural \textsc{Swap} steps, syntax-sugar expansion, derived \textsc{CNOT} hops, and the measure-to-sample \textsc{Uniform} bridge are replayed automatically. The most delicate CSS$\leadsto$\bb bridge remains script-guided because it introduces the dedicated distribution filter and the sifting bad event. This boundary is reflected in the proof account: it records exactly where guidance entered, which side conditions and persistent facts in \(\Xi\) were discharged, and where the \(\beta_{\mathsf{sift}}\) availability term was introduced.
+
+\section{Discussion and Conclusion}
+
+The contribution of our work is a new relational Hoare Logic framework designed for QKD security proof. The proof chain for the \bb can be represented as game hops from external Lo-Chau security with explicit rules and approximation form bad events in our system. Our work focus on the elegant unconditional-security of QKD security research, but the experimental level technics including composable security, physical-device assumptions and full parameter optimization are not taken into consideration. 
+
+Our work is inspired by both classical machine-verified cryptography, including CertiCrypt, EasyCrypt, and pRHL, establishing relational game hopping as a practical proof style~\cite{barthe2009formal,barthe2011computer,barthe2012probabilistic,easycrypt} and quantum relational logics such as \qrhl~\cite{unruh2019qrhl,barthe2020relational,li2021expectation,barthe2025complete}. QKD security theory of the protocol proofs~\cite{calderbank1996good,steane1996multiple,lochau1999unconditional,shor2000simple,mayers2001unconditional} provides study case for our system. Our work sits at the QKD security proof boundary: it makes those QKD security game chains verified formally and hence paves the way towards large-scale QKD infrastructure watched by security software system. For instance, QKD links need proof chain can be rerun when protocol descriptions change in a new design. 
+
+In this paper, the two main hopping chains are the proof automation for Lo--Chau$\leadsto$CSS chain and the CSS$\leadsto$\bb chain. In Lo--Chau$\leadsto$CSS chain, the equivalent terminal classical--quantum state over the final keys, authenticated transcript, and Eve's quantum side information is verified against rules to remove entanglement distribution process and substitute the source of uniform distribution. In CSS$\leadsto$\bb chain, the proof record and accumulate loss-probability coming from the sifting failure event. Those mechanisms are common elements in QKD proof chains between entanglement protocol and prepare-and-measure protocol, which provides a wide application stage and developing paths for our work.
+
+
+\appendices
+
+\section{Supplementary Notes}
+\label{app:supplementary}
+
+\noindent\textbf{Open science.}\phantomsection
+\label{app:open-science}
+
+An anonymized artifact package accompanies the submission. It contains prover source code, protocol models, proof scripts, a replay harness, and metric extractors for the evaluation summary. The package is sufficient to reproduce the automatically replayed case studies reported in this paper. Access details are provided through anonymous links in the supplementary material. If a submission platform strips external URLs, the same package is included in the supplemental archive with replay instructions.
+
+\smallskip
+\noindent\textbf{Ethical considerations.}\phantomsection
+\label{app:ethics}
+
+None. This work is theoretical and does not involve human subjects, user data, personal information, live systems, vulnerability discovery, or deployment of attack tools. The paper develops formal definitions and security proofs, and we do not identify additional ethics considerations.
+
+\section{External CSS/QEC Interface Assumptions}
+\label{app:css-correction}
+\begingroup
+\setlength{\abovedisplayskip}{3pt}
+\setlength{\belowdisplayskip}{3pt}
+\setlength{\abovedisplayshortskip}{2pt}
+\setlength{\belowdisplayshortskip}{2pt}
+\setlength{\jot}{1pt}
+\setlength{\arraycolsep}{2pt}
+
+This appendix records the external CSS/QEC interface assumptions used by the
+two game-hopping figures. The statements below are premises of the case study,
+not newly proved standalone QKD security theorems in this paper and not part of
+the proof-system soundness theorem. The main text invokes these interface facts
+only at the CSS/QEC-specific hops; the surrounding game hops are justified by
+the relational rules.
+
+\begin{definition}[Fixed CSS Classical Input]
+Fix binary matrices \(H_Z\in\mathbb B^{r_Z\times n}\) and
+\(H_X\in\mathbb B^{r_X\times n}\), where \(\mathbb B=\{0,1\}\), satisfying
+\[
+H_XH_Z^{\mathsf T}=0 .
+\]
+The external CSS/QEC interface also fixes decoder tables \(D_X,D_Z\), bit and phase frame lengths
+\(k_x,k_z\), logical CSS maps \(\mathsf{Encode}\), \(\mathsf{Decode}\), and
+\(\mathsf{Encode}_{x,z}\), and reconciliation maps
+\(\mathsf{qecAlice}\) and \(\mathsf{qecBob}\). The symbol \(\nu_k\) is used as
+part of the external CSS frame interface only through the displayed public
+bit-correction value \(x-\nu_k\). This value is sampled and published by the
+surrounding source program before \(\mathsf{Rec}_{x-\nu_k}\) invokes the
+classical maps. These objects are fixed interface parameters, not sampled by the
+proof rules.
+\end{definition}
+
+\begin{definition}[CSS Syndrome Projectors and Code Predicate]
+For a block \(r\), \(\mathsf{CSSSyn}_{H_Z,H_X}(r;s_Z,s_X)\) is the syndrome
+measurement determined by the commuting \(Z\)- and \(X\)-check projectors
+\(\{\Pi_Z(a)\}_{a\in\mathbb B^{r_Z}}\) and
+\(\{\Pi_X(b)\}_{b\in\mathbb B^{r_X}}\). The CSS code predicate is the
+zero-syndrome projector
+\[
+\mathsf{Code}_{H_Z,H_X}(r)
+\triangleq
+\Pi_Z(0^{r_Z})\Pi_X(0^{r_X}) .
+\]
+\end{definition}
+
+\begin{proposition}[Correctness of CSS Syndrome Syntax Sugar]
+\label{prop:csssyn-expansion}
+The command \(\mathsf{CSSSyn}_{H_Z,H_X}(r;s_Z,s_X)\) expands to the commuting
+stabilizer-syndrome measurement for \(H_Z,H_X\). Its postcondition records the
+classical syndrome values \(s_Z,s_X\), and its branch projectors are exactly
+\(\Pi_Z(s_Z)\Pi_X(s_X)\).
+\end{proposition}
+
+\noindent\textbf{Admissible \textsc{CSSSyn-Zero} package.}
+
+\(\operatorname{Readout}((a_Z,a_X);(s_Z,s_X))\) means that the syndrome
+ancillas and classical syndrome cells are proof-local readouts: they are not
+published, not used to control later program commands, and not retained in the
+terminal interface. Under the precondition
+\(\mathsf{Code}_{H_Z,H_X}(r)\) and this private-readout side condition,
+\textsc{CSSSyn-Zero} replaces
+\(\mathsf{CSSSyn}_{H_Z,H_X}(r;s_Z,s_X)\) by the zero private readout
+\((s_Z,s_X)=(0^{r_Z},0^{r_X})\). The package is not applicable to public
+syndrome or coset information such as \(x-\nu_k\).
+
+\begin{definition}[CSS Error-Correction Assumptions]
+The external CSS/QEC interface assumes the fixed decoder obligations used by the
+hops: the residual bit and phase errors selected by the case-study
+branches lie in the row spaces handled by \(D_X\) and \(D_Z\). Equivalently, on
+the accepted branch, the external tables make Alice's and Bob's corrected
+logical keys agree:
+\[
+\mathsf{qecBob}(k',x-\nu_k)
+=
+\mathsf{qecAlice}(k,x-\nu_k).
+\]
+This is an external CSS-code correctness fact used by the proof-replay system. The
+argument \(x-\nu_k\) is public bit-error-correction information, is retained in
+the authenticated transcript \(L\), and is not removed by the
+\(L^{\setminus z}\) convention used only for phase-frame \(z\)-cells.
+\end{definition}
+
+\begin{definition}[CSS-QEC Syntax Sugar]
+\(\mathsf{QEC}(r)\) abbreviates the CSS correction subprogram that performs
+\(\mathsf{CSSSyn}_{H_Z,H_X}\), applies \(D_X,D_Z\) to the resulting syndromes,
+performs the corresponding Pauli corrections, and then applies
+\(\mathsf{Decode}\). The encoder notation
+\(\mathsf{Encode}(k,x,z)\) is the named presentation of
+\(\mathsf{Encode}_{x,z}(k)\) under the fixed CSS frame parameters.
+The reconciliation macro used in the figures expands to fixed finite
+classical-map assignments:
+\[
+\begin{array}{@{}l@{}}
+\mathsf{Rec}_{x-\nu_k}[k',k]\equiv\\
+\quad k_b:=\mathsf{qecBob}(k',x-\nu_k);\\
+\quad k_a:=\mathsf{qecAlice}(k,x-\nu_k).
+\end{array}
+\]
+It reads the selected key lists \(k',k\) and the already-published public
+value \(x-\nu_k\), writes the final classical key variables, and performs no
+publication. The second argument may be written with a different source name in
+earlier checkpoints, but it denotes the selected Alice key list.
+\end{definition}
+
+\begin{theorem}[External CSS Purification-to-QEC Interface]
+\label{thm:css-purification-qec}
+For the Lo--Chau to CSS chain, the purification block and the
+\(\mathsf{QEC}\)-expanded block induce the same retained terminal state once the
+external interface assumptions, \textsc{CSSSyn-Zero} premises, and private-readout side
+conditions above are discharged. The theorem is used only as an external
+interface fact for the displayed hop; it is not a new security theorem.
+\end{theorem}
+
+\begin{theorem}[External Classical CSS-QEC Correctness]
+\label{thm:classical-css-qec}
+On any branch satisfying the fixed CSS decoder assumptions, the classical
+reconciliation maps agree on the retained keys:
+\[
+K_A=\mathsf{qecAlice}(k,x-\nu_k),
+\quad
+K_B=\mathsf{qecBob}(k',x-\nu_k),\]\[
+\qquad
+K_A=K_B .
+\]
+The public value \(x-\nu_k\) remains part of the authenticated transcript \(L\).
+\end{theorem}
+
+\begin{theorem}[External CSS \(z\)-Publication Elimination and Phase-Frame Averaging]
+\label{thm:phase-frame-averaging}
+Let \(P_{\mathsf{pub}}\) be the CSS-code game in which the phase-frame variable
+\(z\) is sampled, used in the CSS encoding, and published in \(L\). Let
+\(P_{\mathsf{priv}}\) be the next game in which the same phase-frame variable is
+sampled and used privately, not published, and traced out after its last private
+use. Assume \(z\) is not used by Bob's bit correction, not used by later branch
+conditions, and not retained except through the transmitted quantum state. Let
+\(L^{\setminus z}\) denote the retained transcript obtained from \(L\) by fixed
+erasure of the transcript cells containing the published \(z\)-value. After
+averaging over the hidden private phase frame, the two games have equal retained
+terminal marginal over
+\[
+(K_A,K_B,L^{\setminus z},\mathsf E).
+\]
+The equality is not branchwise for a fixed \(z\), and it is not a claim about
+the full transcript containing the erased \(z\)-cells. It is the
+retained-transcript convention used by the CSS \(z\)-publication elimination
+hop.
+\end{theorem}
+
+\noindent\textbf{Use in the game chains.}
+The Lo--Chau\(\leadsto\)CSS figure uses Proposition~\ref{prop:csssyn-expansion},
+\textsc{CSSSyn-Zero}, and Theorem~\ref{thm:css-purification-qec} as external
+interface facts. The
+CSS\(\leadsto\)\bb figure uses Theorem~\ref{thm:phase-frame-averaging}, keeps
+the public \(x-\nu_k\) cells in \(L\), and interprets only the eliminated
+\(z\)-publication cells through \(L^{\setminus z}\). All syndrome and correction
+notation appearing in the main text enters through this external interface.
+\endgroup
+
+\section{Complete Syntax-Sugar Expansions}
+\label{app:syntax-sugar}
+\begingroup
+\setlength{\abovedisplayskip}{2pt}
+\setlength{\belowdisplayskip}{2pt}
+\setlength{\abovedisplayshortskip}{1pt}
+\setlength{\belowdisplayshortskip}{1pt}
+\setlength{\jot}{1pt}
+\setlength{\arraycolsep}{2pt}
+\allowdisplaybreaks
+
+The core grammar is summarized in Section~\ref{sec:syntax}, and the full
+address/descriptor model is detailed in Appendix~\ref{app:semantics-soundness}.
+The case-study figures use the following derived forms.
+
+The index convention used by the figures follows the descriptor model. Loop
+counters range over local distributions, while quantum-register offsets are
+explicit. Thus \(c_a:=_\$\mathbf{rand}(n)\) is read as \(c_a[i]\) for
+\(1\le i\le n\), but the corresponding check-block qubit is
+\(\bar q[2n+i]\). Similarly, a key bit \(k[i]\) is loaded into
+\(\bar q[3n+i]\). This keeps probability distributions and quantum registers
+aligned.
+
+\smallskip
+\noindent\textbf{Bulk initialization and measurement.}
+\[
+\bar q:=|0\rangle^{\otimes n}
+\triangleq
+\bar q[1]:=|0\rangle;\cdots;\bar q[n]:=|0\rangle .
+\]
+\[
+\begin{aligned}
+x[1{:}n]&:=\mathcal M_{\mathrm{com}}[\bar q[1{:}n]]\\
+&\triangleq
+x[1]:=\mathcal M_{\mathrm{com}}[\bar q[1]];\cdots;
+x[n]:=\mathcal M_{\mathrm{com}}[\bar q[n]] .
+\end{aligned}
+\]
+where
+\(\mathcal M_{\mathrm{com}}=\{|0\rangle\langle0|,|1\rangle\langle1|\}\)
+and each \(x[i]\) has type \(\mathsf{Bit}\).
+
+\smallskip
+\noindent\textbf{Selected and indexed unitaries.}
+\(\bar q[i_1,\ldots,i_k]\asteq U\) applies \(U\) to the ordered addressed
+systems. For \(U=(U_1,\ldots,U_K)\) and integer expression \(e\),
+\[
+\bar q\asteq U(e)
+\triangleq
+\mathbf{if}\ e<1\lor e>K\to\mathbf{abort},\]\[
+\quad
+\mathbf{else}\to S_1;\cdots;S_K,
+\]
+with \(S_i\triangleq\mathbf{if}\ e=i\to\bar q\asteq U_i,\ 
+\mathbf{else}\to\mathbf{skip}\). For selected addresses
+\(\bar q[e_1,\ldots,e_k]\asteq U(e)\), the expansion first aborts unless
+all \(e_j\in[1,n]\) are pairwise distinct; otherwise it enumerates the finite
+set of valid address tuples and applies the corresponding indexed unitary in
+the unique matching branch.
+
+\smallskip
+\noindent\textbf{Preparation and measurement in the \(\{+,-\}\) basis.}
+\begin{align*}
+\bar q[i]:=\ket+ &\triangleq \bar q[i]:=\ket0;\ \bar q[i]\asteq H,\\
+\bar q[i]:=\ket- &\triangleq \bar q[i]:=\ket0;\ \bar q[i]\asteq X;\ \bar q[i]\asteq H,\\
+c:=\mathcal M_{\{+,-\}}[\bar q[i]]
+&\triangleq \bar q[i]\asteq H;\ c:=\mathcal M_{\mathrm{com}}[\bar q[i]] .
+\end{align*}
+
+\smallskip
+\noindent\textbf{CNOT gate.}
+\[
+\begin{aligned}
+&\bar q[e_1,\ldots,e_k,e_{k+1},\ldots,e_{2k}]\asteq CNOT\\
+&\quad\triangleq
+\bar q[e_1,e_{k+1},\ldots,e_k,e_{2k}]
+\asteq CNOT^{\otimes k}.
+\end{aligned}
+\]
+The first \(k\) addresses are controls, the second \(k\) are targets, and the
+selected-address range and distinctness checks apply.
+
+\smallskip
+\noindent\textbf{For-loop language.}
+\[
+\mathbf{for}\ i=1\ \mathbf{to}\ i=m\quad S(i)\quad\mathbf{end}
+\triangleq
+S(1);S(2);\cdots;S(m).
+\]
+The loop index is syntactic and introduces no rule beyond sequencing.
+
+\smallskip
+\noindent\textbf{\(\mathbf{iid}_{\mu}(n,f)\).}
+For \(f:=_{\$}\mathbf{shuffle}(m)_n\), define
+\[
+\begin{aligned}
+i_0&:=\mathbf{find\ index}(f,1),\\
+i_j&:=\mathbf{find\ index}(f,i_{j-1}+1)
+\quad(1\le j<m),
+\end{aligned}
+\]
+and let \(r_1<\cdots<r_{n-m}\) enumerate the complement of
+\(\{i_0,\ldots,i_{m-1}\}\) in \(\{1,\ldots,n\}\). Then
+\[
+\begin{aligned}
+p:=_{\$}\mathbf{iid}_{\mu}(n,f)
+\triangleq{}&
+\bigl(i_0,\ldots,i_{m-1}\ \text{as above}\bigr);\\
+&\prod_{t=0}^{m-1}
+p[i_t]:=_{\$}\mathbf{Coin\mbox{-}flip}_{\mu};\\
+&\prod_{s=1}^{n-m}
+p[r_s]:=_{\$}\mathbf{Coin\mbox{-}flip}_{\mu}.
+\end{aligned}
+\]
+where \(\prod\) denotes left-to-right sequential composition over the displayed
+finite index range.
+
+\smallskip
+\noindent\textbf{\(\mathbf{rand}(n,f)\).}
+\[
+p:=_{\$}\mathbf{rand}(n,f)\triangleq
+p:=_{\$}\mathbf{iid}_{\mu_B}(n,f),\]\[
+\mu_B(0)=\mu_B(1)=1/2.
+\]
+
+\smallskip
+\noindent\textbf{\(\mathbf{rand}(n)\).}
+\[
+a:=_\$\mathbf{rand}(n)\triangleq
+a:=_\$\mathbf{iid}_{\mu_{1/2}}(n,\mathbf 1_n),\]\[
+\mu_{1/2}(0)=\mu_{1/2}(1)=1/2 .
+\]
+
+\smallskip
+\noindent\textbf{Append notation.}
+Descriptors \(\operatorname{desc}_{\sigma}(g)=(\ell_g^\sigma,\alpha_g^\sigma)\)
+map logical positions to physical addresses. For any linear indexed object
+\(g'\),
+\[
+\begin{aligned}
+\mathbf{append}\ g'\ \mathbf{with}\ v[i]
+&\triangleq g'[\ell_{g'}+1]\equiv v[i],\\
+\alpha_{g'}^\sigma(\ell_{g'}^\sigma+1)
+&=\operatorname{phys}_{\sigma}(v[i]).
+\end{aligned}
+\]
+The source address must not already occur in \(g'\). Append extends a
+descriptor; it does not copy values or quantum states. Publication is the
+separate command \(L[\mathbf{next}]:=_{\mathsf{pub}}v[i]\).
+
+\smallskip
+\noindent\textbf{\(\mathbf{select}\).}
+For aligned lists \(g_1,\ldots,g_r\), fresh output lists \(g'_1,\ldots,g'_r\),
+and \(0\le m\le E\le N\),
+\[
+\begin{aligned}
+&g'_1,\ldots,g'_r :=
+\mathbf{select}^{N} m\ \mathbf{from}\ E\\
+&\hspace{2.0em}\mathbf{for}\ g_1,\ldots,g_r\\
+&\triangleq
+a:=_{\$}\mathbf{shuffle}(m)_E;\
+\mathbf{for}^{N}\ i=1\ \mathbf{to}\ E\\
+&\qquad
+\mathbf{if}\ a[i]=0\to\mathbf{skip},\\
+&\qquad
+\mathbf{else}\to
+\mathbf{append}\ g'_1\ \mathbf{with}\ g_1[i];\cdots;\\
+&\qquad\qquad
+\mathbf{append}\ g'_r\ \mathbf{with}\ g_r[i]\ \mathbf{end}.
+\end{aligned}
+\]
+The proof supplies \(N\) and \(0\le m\le E\le N\). Select constructs aliases to
+existing addresses; it does not copy values or quantum states.
+
+\smallskip
+\noindent\textbf{Channel unitary in channel order.}
+Let \(\bar q_{\mathbf{qubit}}\) be the transmitted register and
+\(\bar q_{\mathbf{ch}}=(D,\bar q_{\mathbf{eve}})\) the channel-side workspace.
+With \(\bar q=(\bar q_{\mathbf{qubit}},\bar q_{\mathbf{ch}})\),
+\[
+H_{\bar q}=H_{\bar q_{\mathbf{qubit}}}\otimes H_{\bar q_{\mathbf{ch}}},
+\qquad
+(\bar q_{\mathbf{qubit}},\bar q_{\mathbf{ch}})\asteq U_{\mathrm{channel}}
+\]
+denotes the fixed purified channel attack on transmitted systems in channel
+order; it may entangle them with all channel-side workspace.
+
+\smallskip
+\noindent\textbf{Filter-induced channel order.}
+For \(f\in\{0,1\}^{N}\), let \(m=\sum_r f[r]\). Let
+\(j_1<\cdots<j_{N-m}\) enumerate \(f=0\) positions and
+\(i_1<\cdots<i_m\) enumerate \(f=1\) positions. Define \(\bar q^f\) by
+\[
+\begin{aligned}
+\bar q^f[j_t]&:=\bar q[t]
+\quad(1\le t\le N-m),\\
+\bar q^f[i_s]&:=\bar q[N-m+s]
+\quad(1\le s\le m).
+\end{aligned}
+\]
+Then
+\[
+(\bar q,\bar q_{\mathbf{ch}})\asteq U_{\mathbf c}(f)
+\triangleq
+(\bar q^f,\bar q_{\mathbf{ch}})\asteq U_{\mathrm{channel}}.
+\]
+The filter fixes channel order, with the \(f=0\) block first; it does not choose
+a new adversarial unitary.
+
+\smallskip
+\noindent\textbf{publish.}
+For classical or probability register \(v=(v[1],\ldots,v[n])\),
+\[
+\mathbf{publish: }v
+\triangleq
+\mathbf{for}\ i=1\ \mathbf{to}\ i=n\quad
+L[\mathbf{next}]:=_{\mathsf{pub}}v[i]\quad\mathbf{end}.
+\]
+Scalar publication is the length-one case; tuple publication expands
+left-to-right. Publication value-copies into fresh authenticated transcript
+cells, creates no descriptor alias, does not consume the source view, and cannot
+publish quantum values.
+\endgroup
+
+\section{Complete Proof Rules}
+\label{app:judgment-rules}
+\begingroup
+\setlength{\abovedisplayskip}{2pt}
+\setlength{\belowdisplayskip}{2pt}
+\setlength{\abovedisplayshortskip}{1pt}
+\setlength{\belowdisplayshortskip}{1pt}
+\setlength{\jot}{1pt}
+\setlength{\arraycolsep}{2pt}
+\allowdisplaybreaks
+
+The lifting, relational judgment, and equality assertion are summarized in
+Section~\ref{sec:logic}; this appendix records the detailed assertion notation
+and the remaining rule schemata.
+
+\smallskip
+\noindent\textbf{Assertion notation.}
+For a view \(V\), an assertion \(A_V\) is interpreted branchwise after the
+logical references in \(V\) resolve to physical addresses. For a subspace
+\(S\), \(\operatorname{proj}(S)\) denotes the orthogonal projector onto \(S\);
+for a positive operator \(T\), \(\operatorname{proj}(T)\) denotes the
+orthogonal projector onto \(\operatorname{supp}(T)\). Conjunction of projective
+assertions is the projector onto the intersection of their images. For list
+views, quantum equality is the conjunction of the pointwise symmetric-subspace
+projectors. Logical connectives on assertions are interpreted by image
+operations on the corresponding projectors.
+
+We write \(\SepD(\mathcal H_1:\mathcal H_2)\) for separable density operators
+on \(\mathcal H_1\otimes\mathcal H_2\), and
+\(\SepD_{\le}(\mathcal H_1:\mathcal H_2)\) for the sub-normalized separable
+cone used by rule-local separability side conditions such as
+\textsc{Quantum-Frame}. For classical support and probabilistic rules, we use
+\[
+\Pi_z^D=\sum_{a\in D}|a\rangle_z\langle a|,
+\qquad
+\equiv^D_{z,z'}=\sum_{a\in D}|a\rangle_z\langle a|\otimes|a\rangle_{z'}\langle a|,
+\]
+and \(\Pi_z^\mu=\Pi_z^{\Supp(\mu)}\),
+\(\equiv^\mu_{z,z'}=\equiv^{\Supp(\mu)}_{z,z'}\).
+
+Assertion entailment is context indexed:
+\[
+\Xi\vDash\Phi\Longrightarrow\Psi,
+\]
+meaning that every witness satisfying \(\Xi\) and \(\Phi\) fully satisfies
+\(\Psi\). For projective assertions this is branchwise image inclusion under
+the symbolic assumptions in \(\Xi\); rule-local semantic side conditions are
+proved separately at the corresponding rule application.
+
+\textbf{Structural proof rules for QKD:}
+
+All rules below use the judgment
+\[
+\Xi\vdash
+P\sim_\delta P':\Phi_V\Longrightarrow\Psi_W .
+\]
+The structural rules are \textsc{Conseq}, \textsc{Weaken-\(\Xi\)},
+\textsc{Seq}, \textsc{Skip}, \textsc{Abort}, \textsc{Ident}, \textsc{Comp},
+\textsc{Classical-Frame}, \textsc{Quantum-Frame}, and \textsc{Swap}. Displayed
+rules suppress the standard well-formedness and aliasing side conditions.
+Consequence adjusts assertions and relaxes \(\delta\):
+\begin{tightdisplay}
+\textsc{Conseq}\quad
+\frac{\begin{array}{c}
+\Xi\vDash\Phi'\Rightarrow\Phi\quad
+\Xi\vDash\Psi\Rightarrow\Psi'\quad
+\delta\le\delta'\\
+\Xi\vdash
+P\sim_\delta P':\Phi\Rightarrow\Psi
+\end{array}}
+{\Xi\vdash
+P\sim_{\delta'}P':\Phi'\Rightarrow\Psi'} .
+\end{tightdisplay}
+The exact identity rule tracks access and update views:
+\[
+\text{\rm (Ident)}\qquad
+\Xi\vdash P\sim P:
+\equiv_{\operatorname{acc}(P)}
+\Longrightarrow
+\equiv_{\operatorname{upd}(P)} .
+\]
+The additive rules are
+\[
+\begin{array}{c}
+\text{\rm (Seq)}\quad
+\dfrac{\begin{array}{c}
+\Xi\vdash P_0\sim_{\delta}P_1:\Phi\Rightarrow\Theta\\
+\Xi\vdash P'_0\sim_{\delta'}P'_1:\Theta\Rightarrow\Psi
+\end{array}}
+{\begin{array}{c}
+\Xi\vdash
+P_0;P'_0\sim_{\delta+\delta'}P_1;P'_1:\\
+\Phi\Rightarrow\Psi
+\end{array}},
+\\[4mm]
+\text{\rm (Comp)}\quad
+\dfrac{\begin{array}{c}
+\Xi\vdash P\sim_{\delta_1}P':\equiv_V\Rightarrow\equiv_V\\
+\Xi\vdash P'\sim_{\delta_2}P'':\equiv_V\Rightarrow\equiv_V
+\end{array}}
+{\begin{array}{c}
+\Xi\vdash
+P\sim_{\delta_1+\delta_2}P'':\\
+\equiv_V\Rightarrow\equiv_V
+\end{array}}.
+\end{array}
+\]
+The frame and swap rules use access and update views:
+\[
+\begin{gathered}
+\text{\rm (Classical-Frame)}:\ 
+\Xi\vdash U\#\operatorname{upd}(P,P'),\\
+\Xi\vdash
+P\sim_\delta P':\Phi\land C_U\Rightarrow\Psi\land C_U,\\[1mm]
+\text{\rm (Quantum-Frame)}:\\\ 
+\Xi\vdash U\#\operatorname{acc}(P,P')\quad
+\Xi\vDash\operatorname{Sep}(U:F),\\
+\Xi\vdash
+P\sim_\delta P':\Phi\land C_U\Rightarrow\Psi\land C_U,\\[1mm]
+\text{\rm (Swap)}:\ 
+\Xi\vdash\operatorname{acc}(P_0)\#\operatorname{acc}(P_1),\\
+\Xi\vdash
+P_0;P_1\sim P_1;P_0:\equiv_V\Rightarrow\equiv_V .
+\end{gathered}
+\]
+
+\textbf{Construct-specific proof rules for QKD proof:}
+
+The primitive command rules are exact unless explicitly stated otherwise. \textsc{Assign-Const} and \textsc{Assign-Const-L} pin the assigned classical value and project away the old assertion on the written location. \textsc{Init-Quantum} and \textsc{Init-Quantum-L} reset the resolved quantum address to \(|0\rangle\). \textsc{Coin} and \textsc{Coin-L} relate identical coin laws by \(\equiv^\mu\) or by the support projector \(\Pi^\mu\). \textsc{Shuffle} relates two fixed-weight shuffles when \(\Xi\vDash m=m'\land n=n'\).
+
+For unitary commands, \textsc{UT} conjugates the assertion by the paired unitary, and \textsc{UT-L} is the one-sided version:
+\[
+\text{\rm (UT)}\quad
+\begin{array}{c}
+\Xi\vdash
+\bar q[i]\asteq U\sim\bar q'[j]\asteq U':\\
+\Phi\Longrightarrow
+(U\otimes U')\Phi(U^\dagger\otimes U'^\dagger).
+\end{array}
+\]
+The conditional rules require branch entailments under the guard. In the paired rule, the precondition must entail that the two guards agree; in the one-sided rule, each branch is proved against the same right program:
+\[
+\Xi\vDash
+\Phi\land[B]\Rightarrow\Theta_0,
+\qquad
+\Xi\vDash
+\Phi\land[\neg B]\Rightarrow\Theta_1 .
+\]
+
+\begin{definition}[Measurement Condition]
+Let \(\mathcal{M}_1=\{M_1^{i}\}_{i=1}^m\) and
+\(\mathcal{M}_2=\{M_2^i\}_{i=1}^m\) be measurements with the same outcome set. The side condition
+\[
+\mathcal{M}_1 \approx \mathcal{M}_2: \Phi_V \Longrightarrow \Psi_W
+\]
+requires every outcome branch to take states satisfying \(\Phi_V\) to states satisfying \(\Psi_W\). The one-sided condition \(\mathcal{M}\approx\mathcal I\) is defined analogously with the right program skipped.
+\end{definition}
+
+\[
+\text{\rm (Meas)}\quad
+\frac{\Xi\vDash
+\mathcal M_1\approx\mathcal M_2:\Phi_V\Rightarrow\Psi_W}
+{\begin{array}{c}
+\Xi\vdash
+x:=\mathcal M_1[\bar q]\sim
+x':=\mathcal M_2[\bar q']:\\
+\Phi_V\Rightarrow
+\equiv^{[m]}_{x,x'}\land
+\operatorname{proj}(\Tr_{x,x'}\Psi_W)
+\end{array}} .
+\]
+\[
+\text{\rm (Meas-L)}\quad
+\frac{\Xi\vDash
+\mathcal M\approx\mathcal I:\Phi_V\Rightarrow\Psi_W}
+{\begin{array}{c}
+\Xi\vdash
+x:=\mathcal M[\bar q]\sim\mathbf{skip}:\\
+\Phi_V\Rightarrow
+\Pi^{[m]}_x\land\operatorname{proj}(\Tr_x\Psi_W)
+\end{array}} .
+\]
+
+\smallskip
+\noindent\textbf{\textsc{Uniform} side definitions.}
+Let \(\mathcal B=\{\ket i\}_{i=1}^{D}\) be an orthonormal basis of
+\(\mathcal H\). A density operator \(\rho\in D(\mathcal H)\) is uniform in
+basis \(\mathcal B\) when measurement in \(\mathcal B\) is uniformly
+distributed; equivalently,
+\[
+p_i=\operatorname{Tr}(\ket i\bra i\rho)=\langle i|\rho|i\rangle=\frac1D
+\quad(1\le i\le D).
+\]
+For the bit-string basis used by the rule in Section~\ref{sec:assert-rules},
+\[
+\begin{aligned}
+\mathcal B&=\{\ket{s}_{\bar q}:s\in\{0,1\}^{\ell}\},\\
+\ket{+}^{\mathcal B}_{\bar q}
+&=
+\frac{1}{\sqrt{2^\ell}}\sum_{s\in\{0,1\}^{\ell}}\ket{s}_{\bar q}
+=
+\ket{+}_{\bar q[1]}\cdots\ket{+}_{\bar q[\ell]}.
+\end{aligned}
+\]
+In the relational assertion of \textsc{Uniform},
+\(\Phi_{\bar q}^{\mathcal B}\) denotes
+\(\ket{+}^{\mathcal B}_{\bar q}\bra{+}^{\mathcal B}_{\bar q}\) on the measured
+program side, with identity on all unmentioned variables.
+
+The remaining construct-specific rules are the exact local rewrites used in the figures. \textsc{CNOT} relates CNOT followed by control measurement to control measurement followed by conditional \(X\), assuming \(\Xi\vdash WF([(\bar q_1,\bar q'_1),(\bar q_2,\bar q'_2)])\). \textsc{If-Stru-1} distributes a command before an if when \(\Xi\vdash\operatorname{upd}(c_2)\#\operatorname{acc}(b)\); \textsc{If-Stru-2} distributes a post-if command into both branches. \textsc{Uniform} is the measure-to-random bridge stated in Section~\ref{sec:assert-rules}. \textsc{UTB} is the only lossy rule used by the figures and accumulates \(\delta+\delta'\) while preserving the postcondition under \(\neg bad\).
+
+\smallskip
+\noindent\textbf{Proof status and soundness notes.}\phantomsection
+\label{app:soundness}
+
+The core soundness claims used by the evaluation are summarized in Section~\ref{sec:assert-rules}. Appendix-level proof obligations include: (i) local soundness for each rule family listed above, (ii) additive error preservation under composition, and (iii) soundness of the uniformity bridge under stated witness preconditions. Detailed derivation traces are included in the artifact package for independent replay.
+\endgroup
+
+\section{Program Semantics and Soundness Details}
+\label{app:semantics-soundness}
+
+\subsection{Certified transfer and abort accounting}
+
+For a terminal state over \((K_A,K_B,L,\mathsf E)\), let
+\[\begin{aligned}
+    \Ideal_{\ell}(\rho)
+    &=
+    \tau^{=}_{K_AK_B}\otimes\Tr_{K_AK_B}(\rho),\\
+    \qquad
+    \tau^{=}_{K_AK_B}
+    &=
+    2^{-\ell}\sum_{s\in\{0,1\}^{\ell}}\ket{s,s}\bra{s,s}.
+\end{aligned}
+\] 
+For a protocol \(P\), an input \(\Delta_0\) and a channel
+\(U_{\mathrm{channel}}\), we write
+\(\rho_{P}^{U_{\mathrm{channel}}}(\Delta_0)\) for the subnormalized terminal
+state obtained by tracing out all registers except Alice's final key, Bob's
+final key, the retained authenticated transcript, and Eve's final quantum
+system. The corresponding non-abort QKD advantage is
+\[
+\operatorname{Adv}^{\mathsf{qkd}}_{\ell}(P)
+=\]\[
+\sup_{\Delta_0,U_{\mathrm{channel}}} D\!\left(
+  \rho_{P}^{U_{\mathrm{channel}}}(\Delta_0),
+  \Ideal_{\ell}\!\left(
+    \rho_{P}^{U_{\mathrm{channel}}}(\Delta_0)
+  \right)
+\right).
+\]
+
+\begin{theorem}[Certified Transfer from Lo--Chau to \bb]
+\label{thm:certified-transfer-lc-bb84}
+Assume the external Lo--Chau game satisfies
+\[
+\operatorname{Adv}^{\mathsf{qkd}}_{\ell}(\Pi_{\mathrm{LC}})
+\le
+\varepsilon_{\mathrm{LC}} .
+\]
+Assume further that the Lo--Chau-to-CSS and CSS-to-\bb hops replayed by the
+proof-replay system preserve the retained terminal QKD state over
+\[
+(K_A,K_B,L,\mathsf E)
+\]
+with zero trace-distance loss on the non-sifting-failure branch. In the CSS
+\(z\)-publication elimination hop, \(L\) is interpreted using the retained
+transcript convention \(L^{\setminus z}\).
+
+Let the \bb candidate population length be
+\[
+N=4n+\lambda,
+\]
+where \(\lambda\) is the population slack parameter, and let
+\[
+Y\sim\operatorname{Binomial}(4n+\lambda,1/2)
+\]
+be the number of positions satisfying \(b[i]=b_2[i]\). The sifting-failure
+event is that the length of the leftover sifted list is smaller than the
+minimal predefined bit number needed,
+\(
+\mathsf{sift\mbox{-}fail}\equiv (Y<2n),
+\)
+and its sift bound is
+\[
+\beta_{\mathsf{sift}}
+\le
+\exp\!\left(
+  -\frac{\lambda^2}{2(4n+\lambda)}
+\right)
+\]
+If the \(\mathsf{sift\mbox{-}fail}\) branch executes
+\(\mathbf{abort}\), then
+\[
+\operatorname{Adv}^{\mathsf{qkd}}_{\ell}(\Pi_{\mathrm{BB84}})
+\le
+\varepsilon_{\mathrm{LC}} .
+\]
+If a single security-plus-availability report is desired, it is bounded by
+\[
+\varepsilon_{\mathrm{LC}}+\beta_{\mathsf{sift}}.
+\]
+\end{theorem}
+
+As the availability term in Theorem~\ref{thm:certified-transfer-lc-bb84}, the
+source-language convention interprets the core command \(\mathbf{abort}\) as the
+zero subnormalized state. Let \(F=\mathsf{sift\mbox{-}fail}\) and let
+\(\mathcal R_{\neg F}\) be the classical trace-nonincreasing restriction to the
+non-\(F\) branches on the terminal QKD state. In the \bb game, every
+\(F\)-branch executes \(\mathbf{abort}\), and
+\(\llbracket\mathbf{abort}\rrbracket(\Delta)=0\). Thus those branches
+contribute zero mass to
+\(\rho_{\Pi_{\mathrm{BB84}}}^{U_{\mathrm{channel}}}(\Delta_0)\). On the
+remaining branches, \(\mathcal R_{\neg F}\) restricts only classical branch,
+transcript, and auxiliary information; it does not modify \(K_A\) or \(K_B\).
+Consequently
+\[
+\Ideal_{\ell}\circ\mathcal R_{\neg F}
+=
+\mathcal R_{\neg F}\circ\Ideal_{\ell},
+\]
+and trace-distance contractivity gives, for every terminal state \(\rho\),
+\[
+D\!\left(
+  \mathcal R_{\neg F}(\rho),
+  \Ideal_{\ell}(\mathcal R_{\neg F}(\rho))
+\right)
+=\]\[
+D\!\left(
+  \mathcal R_{\neg F}(\rho),
+  \mathcal R_{\neg F}(\Ideal_{\ell}(\rho))
+\right)
+\le
+D\!\left(\rho,\Ideal_{\ell}(\rho)\right).
+\]
+Therefore restricting to the non-sifting-failure branch cannot increase the
+subnormalized non-abort QKD advantage. The probability
+\(\Pr[F]\le\beta_{\mathsf{sift}}\) is recorded separately as abort or
+availability loss; it is added only when reporting a combined
+security-plus-availability number.
+
+\subsection{Source-language details, address discipline, and denotational semantics}
+
+All indexed variables resolve to fixed physical addresses before execution. We write
+\[
+\mathcal P=\mathcal P_Q\cup\mathcal P_P\cup\mathcal P_C
+\]
+for the disjoint quantum, probability-list, and ordinary classical address spaces, with
+\[
+\begin{aligned}
+\mathcal P_Q&=\{(\mathsf Q,t):1\le t\le n_q\},\\
+\mathcal P_P&=\{(\mathsf P,t):1\le t\le n_p\},\\
+\mathcal P_C&=\{(\mathsf C,t):1\le t\le n_x\}.
+\end{aligned}
+\]
+The static type environment \(\Gamma_{\mathrm{ty}}\) assigns \(\mathsf{Bit}\)
+or \(\mathsf{Int}\) types to non-quantum addresses; bit values live in
+\(\mathbb B=\{0,1\}\), and probability addresses are bit-valued. Indexed
+objects have sorts
+\[
+\mathsf{QReg},\qquad \mathsf{PList},\qquad
+\mathsf{CList}(\mathsf{Bit}),\qquad \mathsf{CList}(\mathsf{Int}).
+\]
+A store \(\sigma\) carries both classical values and descriptors. For every indexed object \(g\),
+\[
+\operatorname{desc}_{\sigma}(g)=(\ell_g^\sigma,\alpha_g^\sigma),
+\qquad
+\operatorname{phys}_{\sigma}(g[i])
+=\alpha_g^\sigma(\llbracket i\rrbracket_\sigma),
+\]
+whenever \(1\le\llbracket i\rrbracket_\sigma\le\ell_g^\sigma\). Thus append
+and select change descriptors, not the underlying physical address allocation.
+For a fresh quantum name \(\bar q'[j]\), the notation
+\(\bar q'[j]:=\bar q[i]\) is capture-avoiding address binding:
+\[
+\alpha_{\bar q'}^\sigma(j)=\alpha_{\bar q}^\sigma(i),
+\qquad
+\operatorname{phys}_{\sigma}(\bar q'[j])
+=\operatorname{phys}_{\sigma}(\bar q[i]).
+\]
+It is not an executable assignment; it does not copy, initialize, measure, or
+otherwise modify quantum state. A quantum register is well formed only when its
+resolved quantum addresses are pairwise distinct.
+
+This appendix also records the semantic details suppressed from
+Section~\ref{sec:threat-model}. A classical--quantum state is a subnormalized
+state
+\[
+\Delta=\sum_{\sigma}\mu(\sigma)
+|\sigma\rangle\!\langle\sigma|\otimes\rho_\sigma
+\]
+over well-typed stores \(\sigma\models\Gamma_{\mathrm{ty}}\). A command
+\(S\) denotes a trace-nonincreasing transformation
+\(\llbracket S\rrbracket\) on such states. Sequencing is composition;
+\(\mathbf{skip}\) is the identity; and \(\mathbf{abort}\) maps every input to
+the zero subnormalized state.
+
+Classical assignment updates the addressed store cell in each branch.
+Coin-flip and shuffle commands split a branch according to their specified
+finite distributions. Quantum initialization resets the resolved subsystem to
+\(|0\rangle\), unitary update conjugates the addressed subsystem by the
+selected unitary, and measurement applies the measurement operators,
+records the classical outcome, and sums branches with equal output stores.
+Conditionals evaluate the classical guard branchwise. Publication copies the
+current classical or probability value into the next authenticated transcript
+cell; it does not change the source descriptor and cannot publish a quantum
+state. Descriptor append and select update logical descriptors only; they do
+not copy underlying classical values, probability values, or quantum states.
+
+The relational judgment in Section~\ref{sec:logic} is sound with respect to
+these denotations. The proof of each rule is local. Assignment, sampling,
+initialization, unitary, measurement, and conditional rules follow directly
+from their semantic clauses and the stated rule-local side conditions.
+\textsc{Conseq} follows from assertion implication; \textsc{Seq} and
+\textsc{Comp} use the triangle inequality for the loss parameter; and the
+frame and swap rules use the typing discipline to establish the required
+aliasing and access and update separation facts. \textsc{Uniform} is sound because
+the premise asserts the plus-basis witness whose measurement distribution is
+uniform over the displayed classical support. \textsc{UTB} is sound because it
+restricts the postcondition to the good-event projector and adds only the
+explicit bad-event probability. These local soundness facts compose to give
+Theorem~\ref{thm:rule-soundness}.
+
+\begingroup
+\sloppy
+\hbadness=10000
+\begin{thebibliography}{99}
+
+
+\bibitem{bb84}
+Charles H. Bennett and Gilles Brassard.
+1984.
+Quantum cryptography: Public key distribution and coin tossing.
+In \emph{Proceedings of IEEE International Conference on Computers, Systems and Signal Processing}. IEEE, 175--179.
+
+\bibitem{bbm92}
+Charles H. Bennett, Gilles Brassard, and N. David Mermin.
+1992.
+Quantum cryptography without Bell's theorem.
+\emph{Physical Review Letters} 68, 5 (1992), 557--559.
+\url{https://doi.org/10.1103/PhysRevLett.68.557}
+
+\bibitem{scarani2009security}
+Valerio Scarani, Helle Bechmann-Pasquinucci, Nicolas J. Cerf, Miloslav Du\v{s}ek, Norbert L\"utkenhaus, and Momtchil Peev.
+2009.
+The security of practical quantum key distribution.
+\emph{Reviews of Modern Physics} 81, 3 (2009), 1301--1350.
+\url{https://doi.org/10.1103/RevModPhys.81.1301}
+
+\bibitem{wehner2018quantum}
+Stephanie Wehner, David Elkouss, and Ronald Hanson.
+2018.
+Quantum internet: A vision for the road ahead.
+\emph{Science} 362, 6412 (2018), eaam9288.
+\url{https://doi.org/10.1126/science.aam9288}
+
+\bibitem{xu2020secure}
+Feihu Xu, Xiongfeng Ma, Qiang Zhang, Hoi-Kwong Lo, and Jian-Wei Pan.
+2020.
+Secure quantum key distribution with realistic devices.
+\emph{Reviews of Modern Physics} 92, 2 (2020), 025002.
+\url{https://doi.org/10.1103/RevModPhys.92.025002}
+
+\bibitem{azuma2023quantum}
+Koji Azuma, Sophia E. Economou, David Elkouss, Paul Hilaire, Liang Jiang, Hoi-Kwong Lo, and Ilan Tzitrin.
+2023.
+Quantum repeaters: From quantum networks to the quantum internet.
+\emph{Reviews of Modern Physics} 95, 4 (2023), 045006.
+\url{https://doi.org/10.1103/RevModPhys.95.045006}
+
+\bibitem{calderbank1996good}
+A. R. Calderbank and Peter W. Shor.
+1996.
+Good quantum error-correcting codes exist.
+\emph{Physical Review A} 54, 2 (1996), 1098--1105.
+\url{https://doi.org/10.1103/PhysRevA.54.1098}
+
+\bibitem{steane1996multiple}
+A. M. Steane.
+1996.
+Multiple-particle interference and quantum error correction.
+\emph{Proceedings of the Royal Society of London A} 452, 1954 (1996), 2551--2577.
+\url{https://doi.org/10.1098/rspa.1996.0136}
+
+\bibitem{lochau1999unconditional}
+Hoi-Kwong Lo and H. F. Chau.
+1999.
+Unconditional security of quantum key distribution over arbitrarily long distances.
+\emph{Science} 283, 5410 (1999), 2050--2056.
+\url{https://doi.org/10.1126/science.283.5410.2050}
+
+\bibitem{shor2000simple}
+Peter W. Shor and John Preskill.
+2000.
+Simple proof of security of the BB84 quantum key distribution protocol.
+\emph{Physical Review Letters} 85, 2 (2000), 441--444.
+\url{https://doi.org/10.1103/PhysRevLett.85.441}
+
+\bibitem{mayers2001unconditional}
+Dominic Mayers.
+2001.
+Unconditional security in quantum cryptography.
+\emph{Journal of the ACM} 48, 3 (2001), 351--406.
+\url{https://doi.org/10.1145/382780.382781}
+
+\bibitem{devetak2005distillation}
+Igor Devetak and Andreas Winter.
+2005.
+Distillation of secret key and entanglement from quantum states.
+\emph{Proceedings of the Royal Society A} 461, 2053 (2005), 207--235.
+\url{https://doi.org/10.1098/rspa.2004.1372}
+
+\bibitem{renner2008security}
+Renato Renner.
+2008.
+Security of quantum key distribution.
+\emph{International Journal of Quantum Information} 6, 1 (2008), 1--127.
+\url{https://doi.org/10.1142/S0219749908003256}
+
+\bibitem{tomamichel2012tight}
+Marco Tomamichel, Charles Ci Wen Lim, Nicolas Gisin, and Renato Renner.
+2012.
+Tight finite-key analysis for quantum cryptography.
+\emph{Nature Communications} 3 (2012), 634.
+\url{https://doi.org/10.1038/ncomms1631}
+
+\bibitem{lo2005decoy}
+Hoi-Kwong Lo, Xiongfeng Ma, and Kai Chen.
+2005.
+Decoy state quantum key distribution.
+\emph{Physical Review Letters} 94, 23 (2005), 230504.
+\url{https://doi.org/10.1103/PhysRevLett.94.230504}
+
+\bibitem{wang2005beating}
+Xiang-Bin Wang.
+2005.
+Beating the photon-number-splitting attack in practical quantum cryptography.
+\emph{Physical Review Letters} 94, 23 (2005), 230503.
+\url{https://doi.org/10.1103/PhysRevLett.94.230503}
+
+\bibitem{lo2012mdi}
+Hoi-Kwong Lo, Marcos Curty, and Bing Qi.
+2012.
+Measurement-device-independent quantum key distribution.
+\emph{Physical Review Letters} 108, 13 (2012), 130503.
+\url{https://doi.org/10.1103/PhysRevLett.108.130503}
+
+\bibitem{yin2016mdi}
+Hua-Lei Yin et al.
+2016.
+Measurement-device-independent quantum key distribution over a 404 km optical fiber.
+\emph{Physical Review Letters} 117, 19 (2016), 190501.
+\url{https://doi.org/10.1103/PhysRevLett.117.190501}
+
+\bibitem{lucamarini2018overcoming}
+Marco Lucamarini, Zhiliang L. Yuan, James F. Dynes, and Andrew J. Shields.
+2018.
+Overcoming the rate-distance limit of quantum key distribution without quantum repeaters.
+\emph{Nature} 557 (2018), 400--403.
+\url{https://doi.org/10.1038/s41586-018-0066-6}
+
+\bibitem{liu2023twinfield}
+Yang Liu et al.
+2023.
+Experimental twin-field quantum key distribution over 1000 km fiber distance.
+\emph{Physical Review Letters} 130, 21 (2023), 210801.
+\url{https://doi.org/10.1103/PhysRevLett.130.210801}
+
+\bibitem{davidpalsbergtop100}
+Marco David and Jens Palsberg.
+2026.
+Top 100 Quantum Theorems.
+\url{https://marcodavid.net/top100/}
+
+\bibitem{bellare2006codebased}
+Mihir Bellare and Phillip Rogaway.
+2004.
+Code-based game-playing proofs and the security of triple encryption.
+\emph{Cryptology ePrint Archive}, Paper 2004/331.
+\url{https://eprint.iacr.org/2004/331}
+
+\bibitem{shoup2004sequences}
+Victor Shoup.
+2004.
+Sequences of games: a tool for taming complexity in security proofs.
+\emph{IACR Cryptology ePrint Archive}, Paper 2004/332 (2004).
+\url{https://eprint.iacr.org/2004/332}
+
+\bibitem{benton2004simple}
+Nick Benton.
+2004.
+Simple relational correctness proofs for static analyses and program transformations.
+In \emph{Proceedings of the 31st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL)}. 14--25.
+\url{https://doi.org/10.1145/964001.964003}
+
+\bibitem{barthe2009formal}
+Gilles Barthe, Benjamin Gr\'egoire, and Santiago Zanella B\'eguelin.
+2009.
+Formal certification of code-based cryptographic proofs.
+In \emph{Proceedings of the 36th ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL)}. 90--101.
+\url{https://doi.org/10.1145/1480881.1480894}
+
+\bibitem{barthe2011computer}
+Gilles Barthe, Benjamin Gr\'egoire, Sylvain H\'eraud, and Santiago Zanella B\'eguelin.
+2011.
+Computer-aided security proofs for the working cryptographer.
+In \emph{Advances in Cryptology---CRYPTO 2011}. Springer, 71--90.
+\url{https://doi.org/10.1007/978-3-642-22792-9_5}
+
+\bibitem{barthe2012probabilistic}
+Gilles Barthe, Benjamin Gr\'egoire, and Santiago Zanella B\'eguelin.
+2012.
+Probabilistic relational Hoare logics for computer-aided security proofs.
+In \emph{Mathematics of Program Construction (MPC 2012)}. Springer, 1--6.
+\url{https://doi.org/10.1007/978-3-642-31113-0_1}
+
+\bibitem{easycrypt}
+Gilles Barthe, Juan Manuel Crespo, Benjamin Gr\'egoire, C\'esar Kunz, and Santiago Zanella B\'eguelin.
+2012.
+Computer-aided cryptographic proofs.
+In \emph{Interactive Theorem Proving (ITP 2012)}. Springer, 11--27.
+\url{https://doi.org/10.1007/978-3-642-32347-8_2}
+
+\bibitem{barthe2013probabilistic}
+Gilles Barthe, Boris K\"opf, Federico Olmedo, and Santiago Zanella B\'eguelin.
+2013.
+Probabilistic relational reasoning for differential privacy.
+\emph{ACM Transactions on Programming Languages and Systems} 35, 3 (2013), Article 9.
+\url{https://doi.org/10.1145/2492061}
+
+\bibitem{barthe2016couplings}
+Gilles Barthe, Marco Gaboardi, Benjamin Gr\'egoire, Justin Hsu, and Pierre-Yves Strub.
+2016.
+Proving differential privacy via probabilistic couplings.
+In \emph{Proceedings of the 31st Annual ACM/IEEE Symposium on Logic in Computer Science (LICS)}. 749--758.
+\url{https://doi.org/10.1145/2933575.2934554}
+
+\bibitem{barthe2017uniformity}
+Gilles Barthe, Thomas Espitau, Benjamin Gr\'egoire, Justin Hsu, and Pierre-Yves Strub.
+2017.
+Proving uniformity and independence by self-composition and coupling.
+In \emph{LPAR-21. 21st International Conference on Logic for Programming, Artificial Intelligence and Reasoning}. EPiC Series in Computing, Vol. 46. EasyChair, 385--403.
+\url{https://doi.org/10.29007/vz48}
+
+\bibitem{sok2021computeraided}
+Manuel Barbosa, Gilles Barthe, Karthik Bhargavan, Bruno Blanchet, Cas Cremers, Kevin Liao, and Bryan Parno.
+2021.
+SoK: Computer-aided cryptography.
+In \emph{Proceedings of the 2021 IEEE Symposium on Security and Privacy (SP)}. IEEE, 777--795.
+\url{https://doi.org/10.1109/SP40001.2021.00008}
+
+\bibitem{feng2007probabilistic}
+Yuan Feng, Runyao Duan, Zhengfeng Ji, and Mingsheng Ying.
+2007.
+Probabilistic bisimulations for quantum processes.
+\emph{Information and Computation} 205, 11 (2007), 1608--1639.
+\url{https://doi.org/10.1016/j.ic.2007.08.001}
+
+\bibitem{gay2008qmc}
+Simon J. Gay, Rajagopal Nagarajan, and Nikolaos Papanikolaou.
+2008.
+QMC: A model checker for quantum systems.
+In \emph{Computer Aided Verification (CAV 2008)}. Lecture Notes in Computer Science, Vol. 5123. Springer, 543--547.
+\url{https://doi.org/10.1007/978-3-540-70545-1_51}
+
+\bibitem{deng2012openbisimulation}
+Yuxin Deng and Yuan Feng.
+2012.
+Open bisimulation for quantum processes.
+In \emph{Theoretical Computer Science (TCS 2012)}. Lecture Notes in Computer Science, Vol. 7604. Springer, 119--133.
+\url{https://doi.org/10.1007/978-3-642-33475-7_9}
+
+\bibitem{feng2014symbolicbisimulation}
+Yuan Feng, Yuxin Deng, and Mingsheng Ying.
+2014.
+Symbolic bisimulation for quantum processes.
+\emph{ACM Transactions on Computational Logic} 15, 2 (2014), Article 14, 14:1--14:32.
+\url{https://doi.org/10.1145/2579818}
+
+\bibitem{feng2015qpmc}
+Yuan Feng, Ernst Moritz Hahn, Andrea Turrini, and Lijun Zhang.
+2015.
+QPMC: A model checker for quantum programs and protocols.
+In \emph{FM 2015: Formal Methods}. Lecture Notes in Computer Science, Vol. 9109. Springer, 265--272.
+\url{https://doi.org/10.1007/978-3-319-19249-9_17}
+
+\bibitem{kubota2016semiautomated}
+Takahiro Kubota, Yoshihiko Kakutani, Go Kato, Yasuhito Kawano, and Hideki Sakurada.
+2016.
+Semi-automated verification of security proofs of quantum cryptographic protocols.
+\emph{Journal of Symbolic Computation} 73 (2016), 192--220.
+\url{https://doi.org/10.1016/j.jsc.2015.05.001}
+
+\bibitem{qin2020groundbisimulation}
+Xudong Qin, Yuxin Deng, and Wenjie Du.
+2020.
+Verifying quantum communication protocols with ground bisimulation.
+In \emph{Tools and Algorithms for the Construction and Analysis of Systems (TACAS 2020)}. Lecture Notes in Computer Science, Vol. 12079. Springer, 21--38.
+\url{https://doi.org/10.1007/978-3-030-45237-7_2}
+
+\bibitem{unruh2019qrhl}
+Dominique Unruh.
+2019.
+Quantum relational Hoare logic.
+\emph{Proceedings of the ACM on Programming Languages} 3, POPL, Article 33 (2019), 33:1--33:31.
+\url{https://doi.org/10.1145/3290346}
+
+\bibitem{barthe2020relational}
+Gilles Barthe, Justin Hsu, Mingsheng Ying, Nengkun Yu, and Li Zhou.
+2020.
+Relational proofs for quantum programs.
+\emph{Proceedings of the ACM on Programming Languages} 4, POPL, Article 21 (2020), 21:1--21:29.
+\url{https://doi.org/10.1145/3371089}
+
+\bibitem{li2021expectation}
+Yangjia Li and Dominique Unruh.
+2021.
+Quantum relational Hoare logic with expectations.
+In \emph{48th International Colloquium on Automata, Languages, and Programming (ICALP 2021)}. Leibniz International Proceedings in Informatics (LIPIcs), Vol. 198. Schloss Dagstuhl -- Leibniz-Zentrum f\"ur Informatik, 136:1--136:20.
+\url{https://doi.org/10.4230/LIPIcs.ICALP.2021.136}
+
+\bibitem{yan2024approximate}
+Peng Yan, Hanru Jiang, and Nengkun Yu.
+2024.
+Approximate relational reasoning for quantum programs.
+In \emph{Computer Aided Verification (CAV 2024)}. Lecture Notes in Computer Science, Vol. 14683. Springer, 488--510.
+\url{https://doi.org/10.1007/978-3-031-65633-0_22}
+
+\bibitem{barthe2025complete}
+Gilles Barthe, Minbo Gao, Theo Wang, and Li Zhou.
+2025.
+Complete quantum relational Hoare logics from optimal transport duality.
+In \emph{Proceedings of the 40th Annual ACM/IEEE Symposium on Logic in Computer Science (LICS '25)}. IEEE, 884--925.
+
+\bibitem{dhondt2006quantum}
+Ellie D'Hondt and Prakash Panangaden.
+2006.
+Quantum weakest preconditions.
+\emph{Mathematical Structures in Computer Science} 16, 3 (2006), 429--451.
+\url{https://doi.org/10.1017/S0960129506005251}
+
+\bibitem{ying2011floyd}
+Mingsheng Ying.
+2011.
+Floyd--Hoare logic for quantum programs.
+\emph{ACM Transactions on Programming Languages and Systems} 33, 6 (2011), Article 19.
+\url{https://doi.org/10.1145/2049706.2049708}
+
+\bibitem{ying2016foundations}
+Mingsheng Ying.
+2016.
+\emph{Foundations of Quantum Programming}.
+Morgan Kaufmann.
+
+\bibitem{zhou2019applied}
+Li Zhou, Nengkun Yu, and Mingsheng Ying.
+2019.
+An applied quantum Hoare logic.
+In \emph{Proceedings of the 40th ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI)}. 1149--1162.
+\url{https://doi.org/10.1145/3314221.3314584}
+
+\bibitem{feng2021qhlclassical}
+Yuan Feng and Mingsheng Ying.
+2021.
+Quantum Hoare logic with classical variables.
+\emph{ACM Transactions on Quantum Computing} 2, 4 (2021), Article 16.
+\url{https://doi.org/10.1145/3456877}
+
+\bibitem{huang2025veriqec}
+Qifan Huang, Li Zhou, Wang Fang, Mengyu Zhao, and Mingsheng Ying.
+2025.
+Efficient formal verification of quantum error correcting programs.
+\emph{Proceedings of the ACM on Programming Languages} 9, PLDI (2025), 1068--1093.
+\url{https://doi.org/10.1145/3729293}
+
+\bibitem{feng2025stabilizercoq}
+Qiuyi Feng, Udaya Parampalli, and Christine Rizkallah.
+2025.
+Formal verification of quantum stabilizer code.
+In \emph{CoqPL 2025: The Eleventh International Workshop on Coq for Programming Languages}.
+
+\bibitem{gottesman2003twoway}
+Daniel Gottesman and Hoi-Kwong Lo.
+2003.
+Proof of security of quantum key distribution with two-way classical communications.
+\emph{IEEE Transactions on Information Theory} 49, 2 (2003), 457--475.
+\url{https://doi.org/10.1109/TIT.2002.807289}
+
+\bibitem{gllp2004imperfect}
+Daniel Gottesman, Hoi-Kwong Lo, Norbert L\"utkenhaus, and John Preskill.
+2004.
+Security of quantum key distribution with imperfect devices.
+\emph{Quantum Information and Computation} 4, 5 (2004), 325--360.
+\url{https://arxiv.org/abs/quant-ph/0212066}
+
+\bibitem{benor2005ucqkd}
+Michael Ben-Or, Michal Horodecki, Debbie W. Leung, Dominic Mayers, and Jonathan Oppenheim.
+2005.
+The universal composable security of quantum key distribution.
+\emph{arXiv preprint} quant-ph/0409078.
+\url{https://arxiv.org/abs/quant-ph/0409078}
+
+\bibitem{renner2005security}
+Renato Renner.
+2005.
+Security of quantum key distribution.
+Ph.D. dissertation, ETH Zurich.
+\url{https://doi.org/10.3929/ethz-a-005115027}
+
+\bibitem{portmann2022security}
+Christopher Portmann and Renato Renner.
+2022.
+Security in quantum cryptography.
+\emph{Reviews of Modern Physics} 94, 2 (2022), 025008.
+\url{https://doi.org/10.1103/RevModPhys.94.025008}
+
+\bibitem{barthe2017probabilistic}
+Gilles Barthe, Justin Hsu, and Kevin Liao.
+2017.
+Probabilistic couplings for probabilistic reasoning.
+\emph{Communications of the ACM} 60, 11 (2017), 86--95.
+\url{https://doi.org/10.1145/3121128}
+
+\bibitem{wootters1982nocloning}
+William K. Wootters and Wojciech H. Zurek.
+1982.
+A single quantum cannot be cloned.
+\emph{Nature} 299 (1982), 802--803.
+\url{https://doi.org/10.1038/299802a0}
+
+\bibitem{bennett1996mixed}
+Charles H. Bennett, David P. DiVincenzo, John A. Smolin, and William K. Wootters.
+1996.
+Mixed-state entanglement and quantum error correction.
+\emph{Physical Review A} 54, 5 (1996), 3824--3851.
+\url{https://doi.org/10.1103/PhysRevA.54.3824}
+
+\bibitem{bennett1988privacy}
+Charles H. Bennett, Gilles Brassard, and Jean-Marc Robert.
+1988.
+Privacy amplification by public discussion.
+\emph{SIAM Journal on Computing} 17, 2 (1988), 210--229.
+\url{https://doi.org/10.1137/0217014}
+
+\bibitem{liao2017satellite}
+Sheng-Kai Liao et al.
+2017.
+Satellite-to-ground quantum key distribution.
+\emph{Nature} 549 (2017), 43--47.
+\url{https://doi.org/10.1038/nature23655}
+
+\bibitem{li2025intercontinental}
+Yang Li et al.
+2025.
+Microsatellite-based real-time quantum key distribution.
+\emph{Nature} 640, 8057 (2025), 47--54.
+\url{https://doi.org/10.1038/s41586-025-08739-z}
+
+\bibitem{leverrier2017cv}
+Anthony Leverrier.
+2017.
+Security of continuous-variable quantum key distribution via a Gaussian de Finetti reduction.
+\emph{Physical Review Letters} 118, 20 (2017), 200501.
+\url{https://doi.org/10.1103/PhysRevLett.118.200501}
+
+\bibitem{denys2021explicit}
+Adrien Denys, Peter Brown, and Anthony Leverrier.
+2021.
+Explicit asymptotic secret key rate of continuous-variable quantum key distribution with an arbitrary modulation.
+\emph{Quantum} 5 (2021), 540.
+\url{https://doi.org/10.22331/q-2021-09-06-540}
+
+\bibitem{jain2022cvpractical}
+Nitin Jain et al.
+2022.
+Practical continuous-variable quantum key distribution with composable security.
+\emph{Nature Communications} 13 (2022), 4740.
+\url{https://doi.org/10.1038/s41467-022-32493-4}
+
+\bibitem{pirandola2020advances}
+Stefano Pirandola et al.
+2020.
+Advances in quantum cryptography.
+\emph{Advances in Optics and Photonics} 12, 4 (2020), 1012--1236.
+\url{https://doi.org/10.1364/AOP.361502}
+
+\bibitem{hoare1969axiomatic}
+C. A. R. Hoare.
+1969.
+An axiomatic basis for computer programming.
+\emph{Communications of the ACM} 12, 10 (1969), 576--580.
+\url{https://doi.org/10.1145/363235.363259}
+
+\bibitem{bhargavan2008tlsccs}
+Karthikeyan Bhargavan, Ricardo Corin, C\'edric Fournet, and Eugen Z\u{a}linescu.
+2008.
+Cryptographically verified implementations for TLS.
+In \emph{Proceedings of the 15th ACM Conference on Computer and Communications Security (CCS '08)}. 459--466.
+\url{https://doi.org/10.1145/1455770.1455822}
+
+\bibitem{zinzindohoue2017hacl}
+Jean-Karim Zinzindohou\'e, Karthikeyan Bhargavan, Jonathan Protzenko, and Benjamin Beurdouche.
+2017.
+HACL*: A verified modern cryptographic library.
+In \emph{Proceedings of the 2017 ACM SIGSAC Conference on Computer and Communications Security (CCS '17)}. 1789--1806.
+\url{https://doi.org/10.1145/3133956.3134043}
+
+\bibitem{bhargavan2022ech}
+Karthikeyan Bhargavan, Vincent Cheval, and Christopher A. Wood.
+2022.
+A symbolic analysis of privacy for TLS 1.3 with Encrypted Client Hello.
+In \emph{Proceedings of the 2022 ACM SIGSAC Conference on Computer and Communications Security (CCS '22)}. 365--379.
+\url{https://doi.org/10.1145/3548606.3559360}
+
+\bibitem{arquint2023modular}
+Linard Arquint, Malte Schwerhoff, Vaibhav Mehta, and Peter M\"uller.
+2023.
+A generic methodology for the modular verification of security protocol implementations.
+In \emph{Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security (CCS '23)}. 1377--1391.
+\url{https://doi.org/10.1145/3576915.3623105}
+
+\end{thebibliography}
+\endgroup
+
+\end{document}

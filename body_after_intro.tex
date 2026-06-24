@@ -1,0 +1,204 @@
+\section{Verification Target and Threat Model}
+\label{sec:threat-model}
+
+The verification target is not a full physical-device model. It is the security-reduction layer that connects QKD protocol presentations through explicit game hops. The adversary controls the quantum channel and may keep an arbitrary quantum workspace. The authenticated classical channel is public: every published value is added to a leakage log and can condition the adversary's final state. This is the standard abstraction used in Lo--Chau, CSS, and Shor--Preskill-style reductions~\cite{lochau1999unconditional,shor2000simple,mayers2001unconditional}.
+
+The security objective is a composable key-secrecy condition:
+\[
+\frac12\left\|\rho_{KEC}-\tau_K\otimes\rho_{EC}\right\|_1
+\le \epsilon_{\mathrm{sec}},
+\]
+where $K$ is the final key, $E$ is the adversary's quantum side information, and $C$ is the public transcript. Our verifier does not hide this transcript inside prose. It represents publication as a program action and records which game hops preserve the transcript exactly and which hops introduce an explicit approximation term.
+
+\section{Logic Overview}
+\label{sec:logic}
+
+Programs are hybrid classical--quantum commands over a state $(\rho_Q,\sigma_C)$. A proof step is an approximate relational judgment
+\[
+\vdash P\sim_{\delta}P':\Phi\Longrightarrow\Psi,
+\]
+meaning that executions of $P$ and $P'$ started from related states satisfying projector assertion $\Phi$ end in states satisfying $\Psi$, except for error budget $\delta$. Exact game hops have $\delta=0$; bad-event bridges contribute their stated probability.
+
+Assertions are projectors over paired address spaces. For c-q states
+\[
+\Delta=\sum_i \mu_1[i]|i\rangle\!\langle i|\otimes\rho_i,\qquad
+\Delta'=\sum_j \mu_2[j]|j\rangle\!\langle j|\otimes\rho'_j,
+\]
+we write $\Delta A^\delta\Delta'$ when there is a coupling witness supported by projector $A$ with failure probability at most $\delta$. This gives the prover one common judgment for quantum evolution, classical sampling, public transcript equivalence, and accumulated approximation.
+
+The most important bridge is the uniformity rule. If a precondition proves that register $\bar q$ is uniform in the measurement basis, then measuring $\bar q$ can be related to sampling an explicit random string:
+\[
+\frac{\Phi\Longrightarrow |+\rangle_{\bar q}\langle +|}
+{\vdash x:=\mathcal M[\bar q]\sim x:=_\$\mathbf{rand}(d):\Phi
+\Longrightarrow\equiv_{x,x}}.
+\]
+This rule is the engine behind the measure-to-sample transformations highlighted in Figure~\ref{fig:lc-css-main}.
+
+\section{Verification Language}
+\label{sec:syntax}
+
+The source language contains classical variables, probability-distribution variables, quantum registers, unitary updates, measurement, branching, sequential composition, and explicit random initialization. The core commands include
+\[
+\begin{aligned}
+S ::= {}& \mathbf{skip}\mid \mathbf{abort}\mid x[i]:=e
+        \mid p[i]:=_\$ \mathbf{CoinFlip}\\
+\mid{}& p:=_\$\mathbf{shuffle}(x)_n
+        \mid \bar q[i]:=|0\rangle
+        \mid \bar q[i]\asteq U\\
+\mid{}& x[i]:=\mathcal M[\bar q[j]]
+        \mid S;S\\
+\mid{}& \mathbf{if}\ x[i]=0\rightarrow S_0,\ 
+        \mathbf{else}\rightarrow S_1 .
+\end{aligned}
+\]
+
+The derived constructs used in the case studies compile to these commands. For example, $\mathbf{rand}(n)$ is fair iid bit sampling, $\mathbf{shuffle}(r)_n$ samples a length-$n$ selector of weight $r$, and
+\[
+x',b',\bar q' := \mathbf{select}\ 2n\ \mathbf{from}\ 4n+\delta\ \mathbf{for}\ x,b,\bar q
+\]
+desugars to a shuffle plus append loop. Classical append writes to a fresh classical address. Quantum append is only address renaming:
+\[
+\mathsf{Addr}(\bar q'[j])=\mathsf{Addr}(\bar q[i]).
+\]
+It never copies quantum state.
+
+The index convention is critical in the figures. Loop counters range over local distributions, while quantum-register offsets are explicit. Thus a sample $c_a:=_\$\mathbf{rand}(n)$ is read as $c_a[i]$ for $1\le i\le n$, but the corresponding check-block qubit is $\bar q[2n+i]$. Similarly, a key bit $k[i]$ is loaded into $\bar q[3n+i]$. This keeps probability distributions and quantum registers aligned.
+
+\section{Rules and Approximation Accounting}
+\label{sec:assert-rules}
+
+Most replayed hops are exact structural transformations: consequence, frame, swap, synchronized branching, state initialization, measurement synchronization, and sequential composition. The two composition rules used throughout the case-study figures are
+\[
+\frac{
+\vdash P\sim_{\delta}P':\Phi\Longrightarrow\Theta
+\quad
+\vdash Q\sim_{\delta'}Q':\Theta\Longrightarrow\Psi}
+{\vdash P;Q\sim_{\delta+\delta'}P';Q':\Phi\Longrightarrow\Psi}
+\]
+and
+\[
+\frac{
+\vdash P\sim_{\delta_1}P':\equiv\Longrightarrow\equiv
+\quad
+\vdash P'\sim_{\delta_2}P'':\equiv\Longrightarrow\equiv}
+{\vdash P\sim_{\delta_1+\delta_2}P'':\equiv\Longrightarrow\equiv}.
+\]
+
+For failure-event bridges we use an upper-tail pattern. In the CSS$\leadsto$BB84 chain, the relevant bad event is
+\[
+\mathsf{Bad}_{\mathrm{UTB}}\equiv \operatorname{length}(b')<2n,
+\]
+where $b'$ is the list of positions with matching bases $b[i]\oplus b_2[i]=0$. This is the only lossy edge in the displayed case-study figures:
+\[
+\delta_{\mathrm{UTB}}=\Pr[\mathsf{Bad}_{\mathrm{UTB}}].
+\]
+
+\section{Artifact Workflow}
+\label{sec:workflow}
+
+The implementation is artifact-centric. Protocol modules export symbolic QASM-like artifacts. The importer canonicalizes them into ASTs, the spine loader produces deterministic statement sequences, and the proof engine replays relational derivations over those spines. Every run records rewrite decisions, blocked high-risk rewrites, proof obligations, and local $\delta$ contributions.
+
+The workflow is designed for audit rather than maximum automation. A reviewer should be able to inspect which fragment changed, which proof rule or side condition discharged the change, and whether the change was exact or contributed to the approximation budget. Section~\ref{sec:evaluation} uses this audit contract to present the two central case-study figures.
+
+\section{Figure-Centered Case Studies}
+\label{sec:evaluation}
+
+The main evidence of the paper is the two U-shaped game-hopping figures. They are intentionally not decorative summaries: each game box exposes the local fragment that changes at a checkpoint, each edge box states the hop cluster and proof interface, and matching colors identify corresponding code fragments between adjacent checkpoints. The surrounding text defines only the notation needed to read the figures and the resulting observable relations.
+
+\subsection{Common Observables}
+
+For a game $G$, let $\mathsf{Pub}(G)$ be its public transcript and let $K_A,K_B$ be the final Alice/Bob key outputs. We compare games through
+\[
+\mathsf{Out}(G)=\bigl(\pi(\mathsf{Pub}(G)),K_A,K_B\bigr),
+\]
+where $\pi$ is the projection appropriate to the protocol comparison. Exact edges preserve this distribution. The CSS$\leadsto$BB84 matched-basis bridge is instead bounded in total variation by $\delta_{\mathrm{UTB}}$.
+
+We use the following local fragments in both figures:
+\[
+\begin{array}{@{}ll@{}}
+\mathsf{Prep}_{u}[o] &
+\text{writes } |u[i]\rangle \text{ into } \bar q[o+i],\\
+\mathsf{Prep}_{u,b}[o] &
+\text{writes } u[i]\text{ into }\bar q[o+i]\text{ in basis }b[i],\\
+\mathsf{Meas}_{b\to y}[o] &
+\text{measures }\bar q[o+i]\text{ in basis }b[i]\text{ and stores }y[i].
+\end{array}
+\]
+
+\subsection{\texorpdfstring{Lo-Chau $\leadsto$ CSS}{Lo-Chau to CSS}}
+
+The Lo--Chau$\leadsto$CSS case study checks that the entanglement-based Modified Lo--Chau presentation and the CSS Code Protocol induce the same observable behavior. The common adversary-facing channel port is
+\[
+\mathsf{Ch}_{f_{\mathbf c}}
+=
+\bar q[2n+1{:}4n]\otimes D\otimes\bar q_{\mathrm{eve}}
+\asteq U_{\mathbf c}(f_{\mathbf c}),
+\]
+and the public ports are
+\[
+\mathsf{Pub}_0=(\mathrm{received},f_{\mathbf c},b),\qquad
+\mathsf{Pub}_1=(\mathrm{received},f_{\mathbf c},b,x,z).
+\]
+For this comparison, $\pi_{\mathrm{LC/CSS}}$ identifies the Lo--Chau QEC-syndrome presentation with the CSS $(x,z)$ presentation.
+
+Figure~\ref{fig:lc-css-main} is read down the left side, across the bottom, and up the right side. Its five edge interfaces are:
+\[
+\begin{array}{@{}ll@{}}
+\mathcal I_1 & \textsc{ObsEq}/\textsc{Swap}_{c_a},\\
+\mathcal I_2 & \textsc{InputHop}_{\mathrm{check}},\\
+\mathcal I_3 & \textsc{ObsEq}/\textsc{Swap}_{\mathrm{key}},\\
+\mathcal I_4 & \textsc{Interface}/\textsc{QEC-Before-Channel},\\
+\mathcal I_5 & \textsc{Interface}/\textsc{CSS-Front-End Fold}.
+\end{array}
+\]
+The result is exact:
+\[
+\mathsf{Out}_{\mathrm{LC/CSS}}(G_0)\overset{d}{=}
+\mathsf{Out}_{\mathrm{LC/CSS}}(G_{\mathrm{CSS}}).
+\]
+
+\subsection{\texorpdfstring{CSS $\leadsto$ BB84}{CSS to BB84}}
+
+The CSS$\leadsto$BB84 case study starts from the CSS Code Protocol and ends at the BB84 prepare-and-measure form. The endpoint transcripts are
+\[
+\begin{aligned}
+\mathsf{Pub}_{\mathrm{CSS}}
+  &=(\mathrm{received},f_{\mathbf c},b,x,z),\\
+\mathsf{Pub}_{\mathrm{BB84}}
+  &=(\mathrm{received},b,b_2,f_{x,b},x-\nu_k).
+\end{aligned}
+\]
+Here $b$ is Alice's preparation basis, $b_2$ is Bob's measurement basis, $f_{x,b}$ splits retained positions into check/key subsets, and $x-\nu_k$ is the reconciliation publication.
+
+Figure~\ref{fig:css-bb84-main} shows how the CSS check/key blocks are normalized into a BB84 source, extended to $4n+\delta$ candidates, sifted by matched bases, and then measured before classical partitioning. The displayed edge $\mathcal I_5$ is the only lossy one:
+\[
+\Delta_{\mathrm{TV}}\!\left(
+\mathsf{Out}(G_{13}),\mathsf{Out}(G_{15})
+\right)\le \delta_{\mathrm{UTB}}.
+\]
+Consequently,
+\[
+\Delta_{\mathrm{TV}}\!\left(
+\mathsf{Out}(G_0),\mathsf{Out}(G_{\mathrm{BB84}})
+\right)\le \delta_{\mathrm{UTB}}.
+\]
+
+\input{case_study_figures}
+
+\section{Evaluation Summary}
+
+The artifact runs check representative transitions from both case-study families. Automated 1to2 and 2to3 runs use $n_{\mathrm{pairs}}=14$ and $p=0.1$; the manual upper-tail bridge run uses $n_{\mathrm{pairs}}=28$ and $p=0.1$. The logs record AST hashes, spine hashes, rewrite decisions, rule traces, proof obligations, and the nonzero $\delta$ introduced by the UTB bridge.
+
+Representative checks include the first Lo--Chau swap normalization (one step, $\delta=0$), the raw and CSS $4\leadsto5$ synchronized peelings (42 steps each, $\delta=0$), the $16\leadsto17$ rewrite-boundary proof that blocks the high-risk key-bit-as-measure rewrite under the safe policy, the CSS importer step into the BB84 chain (two steps, $\delta=0$), and the $14\leadsto15$ BB84 upper-tail bridge (131 recorded proof nodes, $\delta_{\mathrm{UTB}}=0.425277$ in the evaluated parameter instance).
+
+The boundary is visible. Structural swaps, syntax-sugar expansion, address normalization, and many input-hop steps replay automatically. The hardest CSS$\leadsto$BB84 selection bridge remains script-guided because it introduces the matched-basis bad event. This is acceptable for the present contribution: the proof report records exactly where guidance entered and what approximation budget it introduced.
+
+\section{Discussion and Related Work}
+
+The contribution is a replayable proof workflow, not a claim of full end-to-end finite-key automation. Physical-device assumptions, source flaws, detector behavior, and full parameter optimization remain outside the trusted logical core. The benefit is that protocol transformations in the Lo--Chau/CSS/\bb lineage can be represented as auditable game hops with explicit side conditions and visible approximation points.
+
+Classical machine-checked cryptography, including CertiCrypt and EasyCrypt, established relational game hopping as a practical proof style~\cite{barthe2009certicrypt,barthe2012easycrypt,barthe2009prhl,barthe2017probabilistic}. Quantum relational logics such as \qrhl and later coupling- and expectation-based systems provide foundational reasoning principles~\cite{unruh2019qrhl,barthe2019relationalq,li2021expectation,barthe2025complete}. QKD security theory supplies the protocol reductions that motivate our case studies~\cite{lochau1999unconditional,calderbank1996good,steane1996multiple,shor2000simple,mayers2001unconditional}. Our work sits at the artifact boundary: it makes those reductions replayable over generated symbolic protocol representations and exposes the evidence ledger needed for audit.
+
+\section{Conclusion}
+
+QKD assurance needs proof artifacts that can be rerun when protocol code or proof scripts change. This paper presents an approximate quantum-probabilistic relational Hoare logic and an artifact workflow for that purpose. The two central case-study figures show the core result: a mechanized Lo--Chau$\leadsto$CSS chain with exact observable equivalence, and a mechanized CSS$\leadsto$BB84 chain whose only displayed loss is the matched-basis upper-tail event.

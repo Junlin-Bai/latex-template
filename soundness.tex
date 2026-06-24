@@ -1,0 +1,3766 @@
+\documentclass[acmsmall,screen,review,anonymous,nonacm]{acmart}
+\usepackage[shortlabels]{enumitem}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{array}
+\usepackage{braket}
+\usepackage{mathpartir}
+\usepackage{framed}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{url}
+\usepackage{comment}
+\usepackage{hyperref}
+%\usepackage{upgreek}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc,fit}
+\usepackage{longtable} % For tables spanning multiple pages
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\tcbset{
+  fontupper=\fontsize{9pt}{9.6pt}\selectfont,
+  fonttitle=\fontsize{9.1pt}{9.7pt}\selectfont\bfseries,
+  left=0.35mm,
+  right=0.35mm,
+  top=0.35mm,
+  bottom=0.35mm,
+  boxsep=0.35mm,
+  before upper={\setlength{\jot}{0.8pt}\setlength{\arraycolsep}{1pt}}
+}
+\allowdisplaybreaks
+\setlength{\hfuzz}{40pt}
+\setlength{\vfuzz}{45pt}
+\hbadness=10000
+\vbadness=10000
+\setlength{\emergencystretch}{2em}
+\newtheorem{definition}{Definition}[section]
+\setlength{\arrayrulewidth}{1.2pt} % Set line width to 1.2pt
+\usetikzlibrary{quantikz2}
+\hypersetup{colorlinks=true, citecolor=blue, urlcolor=blue, linkcolor=blue}
+\setcounter{tocdepth}{2}
+\geometry{a4paper}
+
+\newtheoremstyle{defn_style}      % Name
+  {}%                             % Space above
+  {}%                             % Space below
+  {}%                             % Body font
+  {}%                             % Indent amount
+  {\bfseries}%                    % Theorem head font
+  {.}%                            % Punctuation after theorem head
+  { }%                            % Space after theorem head, ' ', or \newline
+  {\thmname{#1}\thmnumber{#2}\thmnote{ (#3)}} % Theorem head spec (can be left empty, meaning `normal')
+
+\theoremstyle{defn_style}
+\newtheorem{defn}{Definition}[section]
+\newtheorem{example}{Example}[section]
+\newtheorem{pro}{Proposition}[section]
+
+\newtheorem{pros}{Properties}[section]
+
+\newtheorem{lem}{Lemma}[section]
+
+\newtheorem{lemma}[lem]{Lemma}
+
+\newtheorem{thm}{Theorem}[section]
+\newcommand{\op}[2]{\ket{#1}\!\bra{#2}}
+\newcommand{\opp}[3]{\ket{#1}\!_{#3}\!\bra{#2}}
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
+\newcommand{\asteq}{\mathrel{*}=}
+\newcommand{\supp}{\textup{supp}}
+\newcommand{\spn}{span}
+\newcommand{\tr}{\textup{tr}}
+\newcommand{\prj}{\textup{proj}}
+
+\newcommand{\SKIP}{\ensuremath{\mathbf{skip}}}
+\newcommand{\IF}{\ensuremath{\mathbf{if}}}
+\newcommand{\THEN}{\ensuremath{\mathbf{then}}}
+\newcommand{\ELSE}{\ensuremath{\mathbf{else}}}
+\newcommand{\FI}{\ensuremath{\mathbf{fi}}}
+\newcommand{\WHILE}{\ensuremath{\mathbf{while}}}
+\newcommand{\MEAS}{\ensuremath{\mathbf{meas}}}
+\newcommand{\DO}{\ensuremath{\mathbf{do}}}
+\newcommand{\OD}{\ensuremath{\mathbf{od}}}
+\newcommand{\FOR}{\ensuremath{\mathbf{for}}}
+\newcommand{\ERR}{\ensuremath{\mathbf{error}}}
+\newcommand{\ASSERT}{\ensuremath{\mathbf{assert}}}
+\newcommand{\FREE}{\ensuremath{\mathbf{free}}}
+
+\title{Relational Analysis for Quantum Key Distribution}
+\author{Junlin}
+\date{Oct 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Formal System Soundness}
+
+\subsection{Program Model}
+\subsubsection{Syntax}
+
+\begin{definition}[Variable Names to Address Indexes]
+\[
+\overset{\textbf{Quantum variables}}{\overbrace{
+\bar q \mapsto [1,\ldots,n_q]
+}}
+\qquad
+\overset{\textbf{Probability registers}}{\overbrace{
+p \mapsto [1,\ldots,n_p]
+}}
+\qquad
+\overset{\textbf{Classical registers}}{\overbrace{
+x \mapsto [1,\ldots,n_x]
+}} .
+\]
+
+Addresses are defined as
+\[
+(\mathsf{Quantum}\quad \mathsf{Int})
+\mid
+(\mathsf{Probability}\quad \mathsf{Int})
+\mid
+(\mathsf{Classical}\quad \mathsf{Int}) .
+\]
+
+Descriptor names include
+\[
+f \mapsto [1,\ldots,n_f],
+\qquad
+\iota:\mathsf{Int}.
+\]
+They are not register addresses.
+\end{definition}
+
+
+\begin{definition}[Logical Lists, Length, and Descriptor Views]
+The physical register memories are fixed address-indexed memories. Addresses
+are not created, deleted, copied, or moved by descriptor commands.
+
+A descriptor store \(\xi\) assigns to each logical list name \(g\) a descriptor
+view
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+\]
+where
+\[
+\ell_g\in\mathbb N
+\]
+and
+\[
+\alpha_g:\{1,\ldots,\ell_g\}\to \mathsf{addresses}.
+\]
+
+A descriptor view is mutable. A descriptor command may overwrite the descriptor
+currently stored under a logical list name. Such an overwrite changes only how
+future logical references are resolved. It does not change the register payload
+stored at any physical address.
+
+A reference \(g[i]\) is well formed at \(\xi\) only when
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g)
+\qquad
+\text{and}
+\qquad
+1\le i\le \ell_g.
+\]
+It resolves to
+\[
+\mathsf{phys}_{\xi}(g[i])=\alpha_g(i).
+\]
+
+For lists,
+\[
+\mathsf{phys}_{\xi}(g[1,\ldots,n])
+=
+(\alpha_g(1),\ldots,\alpha_g(n)),
+\]
+provided
+\[
+n\le \ell_g.
+\]
+
+A branch separates descriptor data from register data:
+\[
+\text{descriptor data: filters, descriptor integers, and descriptor views,}
+\]
+\[
+\text{register data: payload at physical addresses.}
+\]
+Classical values, probability values, and quantum states are register data.
+\end{definition}
+
+
+\begin{definition}[Static Logical Indices]
+In the core language, every displayed index
+\[
+i,j,t
+\]
+in a logical reference such as
+\[
+g[i],
+\qquad
+x[i],
+\qquad
+\bar q[j]
+\]
+is a fixed positive natural number at the syntax level. It is not a runtime
+integer expression and not a descriptor integer.
+
+Thus a core reference
+\[
+g[i]
+\]
+is well formed at descriptor store \(\xi\) only when
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g)
+\qquad\text{and}\qquad
+1\le i\le \ell_g.
+\]
+
+Expression-indexed selected-qubit notation such as
+\[
+\bar q[e_1,\ldots,e_k]\asteq U(e)
+\]
+is syntax sugar only. It expands into finite case analysis over fixed
+natural-number references before denotation.
+\end{definition}
+
+
+\begin{definition}[Syntax]
+Statements are divided by command mode.
+
+Descriptor commands update descriptor data:
+\[
+D ::=
+f :=_{\$}\mathbf{shuffle}(m)_N
+\mid
+\iota := \mathbf{length}(g)
+\]
+\[
+\mid
+(g_0,g_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
+\mid
+g
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1 .
+\]
+
+Descriptor integer expressions are
+\[
+J ::= N \mid \iota .
+\]
+
+Register commands read or update register payloads after resolving logical
+references:
+\begin{align*}
+R ::=~&
+\mathbf{skip}
+\mid
+\mathbf{abort}
+\mid
+x[i] := E
+\mid
+z :=_{\$}\mathbf{rand}(n,\varphi)
+\mid
+z :=_{\$} \textit{rand}_{n}(C_m)
+\\
+&\mid
+\bar q[i] := \ket{0}
+\mid
+\bar q[i] \asteq U
+\mid
+x[i] := \mathcal{M}[\bar q[j]]
+\mid
+R_0;R_1
+\\
+&\mid
+\mathbf{if}\ B \rightarrow R_0,\ \mathbf{else}\rightarrow R_1 .
+\end{align*}
+Here \(z\) ranges over bit-valued probability register views.
+
+Programs are generated by
+\[
+S ::=
+D
+\mid R
+\mid S_0;S_1 .
+\]
+
+A command
+\[
+f:=_{\$}\mathbf{shuffle}(m)_N
+\]
+samples a filter of length \(N\) with exactly \(m\) one-bits.
+
+A command
+\[
+\iota:=\mathbf{length}(g)
+\]
+stores the current descriptor length of \(g\).
+
+The commands
+\[
+(g_0,g_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
+\]
+and
+\[
+g
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1
+\]
+update descriptor views only.
+\end{definition}
+
+\begin{definition}[Classical Expressions and Predicates]
+Use classical types
+\[
+\tau ::= \mathsf{Bit}\mid \mathsf{Int}.
+\]
+
+\[
+E ::=
+a
+\mid \iota
+\mid x[i]
+\mid E_1+E_2 .
+\]
+
+\[
+B ::=
+\top
+\mid \bot
+\mid E_1=E_2
+\mid E_1<E_2
+\mid E_1\leq E_2
+\mid \neg B
+\mid B_1\land B_2
+\mid B_1\lor B_2 .
+\]
+
+We use \(E_1\neq E_2,\quad E_1>E_2,\quad E_1\geq E_2\)
+as standard abbreviations.
+\end{definition}
+
+
+\subsubsection{\textbf{Semantics}}
+
+\begin{definition}[Descriptor Stores and Register States]
+A descriptor store \(\xi\) maps filter names to finite bitstrings, descriptor
+integer names to integers, and logical list names to descriptor views.
+
+For a logical list \(g\),
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+\]
+where
+\[
+\ell_g\in\mathbb N,
+\qquad
+\alpha_g:\{1,\ldots,\ell_g\}\to \mathsf{addresses}.
+\]
+
+A filter descriptor is a finite bit-valued list. Write
+\[
+\mathsf{BitList}(N)
+=
+\{0,1\}^{N}
+\]
+and
+\[
+\mathsf{Filt}(m,N)
+=
+\{F\in\{0,1\}^{N}:\operatorname{wt}(F)=m\}.
+\]
+
+A c-q state is a finite- or countable-support family
+\[
+\Delta=(\rho_{\xi})_{\xi},
+\]
+where each \(\rho_{\xi}\) is a positive sub-normalized physical-register
+c-q state and
+\[
+\sum_{\xi}\operatorname{Tr}(\rho_{\xi})\le 1.
+\]
+
+Trace-\(1\) states are admissible initial states. Program denotations may
+produce sub-normalized states; in particular, \(\mathbf{abort}\) denotes the
+zero state.
+\end{definition}
+
+
+For filter, write
+\[
+\mathsf{BitList}(N)
+=
+\{0,1\}^{N}
+\]
+and
+\[
+\mathsf{Filt}(m,N)
+=
+\{F\in\{0,1\}^{N}:\operatorname{wt}(F)=m\}.
+\]
+
+A filter expression is either a filter name or a deterministic all-one filter:
+\[
+\varphi ::= f \mid \mathbf 1_J .
+\]
+Its interpretation is
+\[
+\llbracket f\rrbracket_{\xi}=\xi(f),
+\]
+and
+\[
+\llbracket \mathbf 1_J\rrbracket_{\xi}
+=
+1^{\llbracket J\rrbracket_{\xi}}.
+\]
+
+The assertion
+\[
+\Pi_{\varphi}^{N}
+\]
+means that \(\varphi\) resolves to a bit-valued list of length \(N\). The
+assertion
+\[
+\Pi_{\varphi}^{m,N}
+\]
+means that \(\varphi\) resolves to a bit-valued list of length \(N\) and
+weight \(m\).
+
+\begin{definition}[Resolution and Filter-Indexed Views]
+For a logical reference,
+\[
+\mathsf{phys}_{\xi}(g[i])
+=
+\alpha_g(i),
+\qquad
+\text{where }
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g).
+\]
+
+For lists,
+\[
+\mathsf{phys}_{\xi}(g[1,\ldots,n])
+=
+(\alpha_g(1),\ldots,\alpha_g(n)).
+\]
+
+If \(\xi(f)=F\) and
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+\]
+define
+\[
+g^{f}
+\stackrel{\triangle}{=}
+(g|_{F=0},g|_{F=1}),
+\]
+with relative order preserved inside each filter case. Thus
+\[
+\mathsf{phys}_{\xi}(g^{f})
+=
+(\alpha_g(t):1\le t\le \ell_g,\ F_t=0)
+\cdot
+(\alpha_g(t):1\le t\le \ell_g,\ F_t=1).
+\]
+
+For views \(g_0,g_1\), define
+\[
+(g_0,g_1)^{\uparrow f}
+\]
+by
+\[
+\mathsf{phys}_{\xi}((g_0,g_1)^{\uparrow f})
+=
+\text{the unique interleaving of }
+\mathsf{phys}_{\xi}(g_0),
+\mathsf{phys}_{\xi}(g_1)
+\text{ according to }\xi(f).
+\]
+
+Resolution of paired views is componentwise:
+\[
+\mathsf{phys}_{\xi,\xi'}(u,u')
+=
+\left(
+\mathsf{phys}_{\xi}(u),
+\mathsf{phys}_{\xi'}(u')
+\right).
+\]
+\end{definition}
+
+\begin{definition}[Program Semantics]
+Descriptor integer expressions are evaluated by
+\[
+\llbracket N\rrbracket_{\xi}=N,
+\qquad
+\llbracket \iota\rrbracket_{\xi}=\xi(\iota).
+\]
+
+Filter expressions are evaluated by
+\[
+\llbracket f\rrbracket_{\xi}=\xi(f),
+\]
+and
+\[
+\llbracket \mathbf 1_J\rrbracket_{\xi}
+=
+1^{\llbracket J\rrbracket_{\xi}}.
+\]
+
+For
+\[
+D=f:=_{\$}\mathbf{shuffle}(m)_N,
+\]
+\[
+\sem D(\Delta)_{\xi'}
+=
+\sum_{\substack{\xi,\ F\in\mathsf{Filt}(m,N)\\
+\xi'=\xi[f\mapsto F]}}
+\frac{1}{|\mathsf{Filt}(m,N)|}\rho_{\xi}.
+\]
+
+For
+\[
+D=\iota:=\mathbf{length}(g),
+\]
+if
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+\]
+then
+\[
+\sem D(\Delta)_{\xi'}
+=
+\sum_{\xi:\xi'=\xi[\iota\mapsto \ell_g]}
+\rho_{\xi}.
+\]
+
+For
+\[
+D=
+(g_0,g_1):=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g,
+\]
+let
+\[
+e=\llbracket J\rrbracket_{\xi},
+\qquad
+\xi(f)=F,
+\qquad
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g).
+\]
+The command is well formed only when
+\[
+e=\ell_g=N,
+\qquad
+F\in\{0,1\}^{e}.
+\]
+Then \(D_f(\xi)\) sets
+\[
+\operatorname{desc}(g_0)
+=
+\left(
+|\{1\le s\le e:F_s=0\}|,
+\ t\mapsto (\alpha_g(s):1\le s\le e,\ F_s=0)_t
+\right),
+\]
+and
+\[
+\operatorname{desc}(g_1)
+=
+\left(
+|\{1\le s\le e:F_s=1\}|,
+\ t\mapsto (\alpha_g(s):1\le s\le e,\ F_s=1)_t
+\right).
+\]
+Thus
+\[
+\sem{D}(\Delta)_{\xi'}
+=
+\sum_{\xi:D_f(\xi)=\xi'}
+\rho_{\xi}.
+\]
+
+For
+\[
+D=
+g:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1,
+\]
+let
+\[
+e=\llbracket J\rrbracket_{\xi},
+\qquad
+\xi(f)=F,
+\]
+and
+\[
+\operatorname{desc}_{\xi}(g_0)=(\ell_{g_0},\alpha_{g_0}),
+\qquad
+\operatorname{desc}_{\xi}(g_1)=(\ell_{g_1},\alpha_{g_1}).
+\]
+The command is well formed only when
+\[
+e=N,
+\qquad
+F\in\{0,1\}^{e},
+\]
+\[
+|\{1\le t\le e:F_t=0\}|=\ell_{g_0},
+\qquad
+|\{1\le t\le e:F_t=1\}|=\ell_{g_1}.
+\]
+Then \(D_f(\xi)\) sets \(g\) to the unique descriptor list \(h=(e,\alpha_h)\)
+satisfying
+\[
+\alpha_h(t)=
+\begin{cases}
+\alpha_{g_0}\!\left(|\{1\le s\le t:F_s=0\}|\right),
+&
+F_t=0,
+\\[0.6ex]
+\alpha_{g_1}\!\left(|\{1\le s\le t:F_s=1\}|\right),
+&
+F_t=1.
+\end{cases}
+\]
+Thus
+\[
+\sem{D}(\Delta)_{\xi'}
+=
+\sum_{\xi:D_f(\xi)=\xi'}
+\rho_{\xi}.
+\]
+
+For
+\[
+\mathbf{skip},
+\]
+\[
+\sem{\mathbf{skip}}(\Delta)=\Delta.
+\]
+
+For
+\[
+\mathbf{abort},
+\]
+\[
+\sem{\mathbf{abort}}(\Delta)_{\xi}=0
+\qquad
+\text{for every }\xi.
+\]
+
+For sequencing,
+\[
+\sem{S_0;S_1}
+=
+\sem{S_1}\circ \sem{S_0}.
+\]
+
+For a register command \(R\),
+\[
+\sem R(\Delta)_{\xi}
+=
+\mathcal E^R_{\xi}(\rho_{\xi}).
+\]
+
+For
+\[
+z:=_{\$}\mathbf{rand}(n,\varphi),
+\]
+let
+\[
+\vec a=\mathsf{phys}_{\xi}(z[1,\ldots,n]).
+\]
+The register effect is
+\[
+\mathcal E^R_{\xi}(\rho)
+=
+2^{-n}
+\sum_{s\in\{0,1\}^{n}}
+\ket{s}_{\vec a}\bra{s}
+\otimes
+\operatorname{Tr}_{\vec a}(\rho).
+\]
+
+For conditionals, let \(\Pi_{B,\xi}\) be the branchwise classical projector
+defined by the predicate \(B\), with descriptor integers interpreted using
+\(\xi\). Then
+\[
+\sem{
+\mathbf{if}\ B\rightarrow R_0,\ \mathbf{else}\rightarrow R_1
+}(\Delta)_{\xi}
+=
+\mathcal E^{R_0}_{\xi}
+\left(
+\Pi_{B,\xi}\rho_{\xi}\Pi_{B,\xi}
+\right)
++
+\mathcal E^{R_1}_{\xi}
+\left(
+\Pi_{\neg B,\xi}\rho_{\xi}\Pi_{\neg B,\xi}
+\right).
+\]
+\end{definition}
+
+
+\begin{definition}[View Index and Local Assertions]
+A view index is a displayed left/right view expression
+\[
+\mathcal V.
+\]
+It is a proof-side syntactic index.  It contains logical view names, list
+expressions, and filter-indexed view expressions such as
+\[
+g^f,
+\qquad
+(g_0,g_1)^{\uparrow f}.
+\]
+It does not contain the current descriptor store.
+
+An assertion is written with an explicit view index:
+\[
+\Phi_{\mathcal V}.
+\]
+For every pair of current left/right descriptor stores \((\xi,\xi')\), the
+assertion denotes a local projector
+\[
+\llbracket \Phi_{\mathcal V}\rrbracket_{\xi,\xi'}
+\]
+on the resolved left/right physical register memories determined by
+\[
+\mathsf{phys}_{\xi,\xi'}(\mathcal V).
+\]
+If \(\mathcal V\) is not well formed under \((\xi,\xi')\), then
+\[
+\llbracket \Phi_{\mathcal V}\rrbracket_{\xi,\xi'}
+=
+0_{\mathsf{Reg}^{L,R}}.
+\]
+
+Thus \(\mathcal V\) is the assertion index, while \(\xi,\xi'\) are semantic
+parameters used to interpret that index.
+
+Operators with view subscripts are interpreted locally.  For example,
+\[
+U_{\bar q[\mathbf i]},
+\qquad
+\ket a_{x[i]}\bra a,
+\qquad
+\equiv_{(u,u')}
+\]
+are interpreted branchwise after resolving the displayed views under
+\((\xi,\xi')\).
+
+Descriptor-only assertions are scalar local assertions.  Their denotation is
+either
+\[
+I_{\mathsf{Reg}^{L,R}}
+\]
+or
+\[
+0_{\mathsf{Reg}^{L,R}}
+\]
+under each semantic pair \((\xi,\xi')\).
+
+For filter expressions,
+\[
+\llbracket \equiv_{(\varphi,\varphi')}\rrbracket_{\xi,\xi'}
+\stackrel{\triangle}{=}
+\begin{cases}
+I_{\mathsf{Reg}^{L,R}},
+&
+\llbracket\varphi\rrbracket_{\xi}
+=
+\llbracket\varphi'\rrbracket_{\xi'},
+\\[0.4ex]
+0_{\mathsf{Reg}^{L,R}},
+&
+\text{otherwise}.
+\end{cases}
+\]
+
+For descriptor integers,
+\[
+\llbracket \equiv_{(\iota,\iota')}\rrbracket_{\xi,\xi'}
+\stackrel{\triangle}{=}
+\begin{cases}
+I_{\mathsf{Reg}^{L,R}},
+&
+\xi(\iota)=\xi'(\iota'),
+\\[0.4ex]
+0_{\mathsf{Reg}^{L,R}},
+&
+\text{otherwise}.
+\end{cases}
+\]
+
+For one-sided filter length support,
+\[
+\llbracket \Pi_{\varphi}^{N}\rrbracket_{\xi,\xi'}
+\stackrel{\triangle}{=}
+\begin{cases}
+I_{\mathsf{Reg}^{L,R}},
+&
+\llbracket\varphi\rrbracket_{\xi}\in\{0,1\}^{N},
+\\[0.4ex]
+0_{\mathsf{Reg}^{L,R}},
+&
+\text{otherwise}.
+\end{cases}
+\]
+
+For one-sided filter weight support,
+\[
+\llbracket \Pi_{\varphi}^{m,N}\rrbracket_{\xi,\xi'}
+\stackrel{\triangle}{=}
+\begin{cases}
+I_{\mathsf{Reg}^{L,R}},
+&
+\llbracket\varphi\rrbracket_{\xi}\in\mathsf{Filt}(m,N),
+\\[0.4ex]
+0_{\mathsf{Reg}^{L,R}},
+&
+\text{otherwise}.
+\end{cases}
+\]
+
+For finite-support \(\mu\), define locally
+\[
+\Pi_z^\mu
+\stackrel{\triangle}{=}
+\sum_{a\in\operatorname{supp}(\mu)}
+\ket a_z\bra a .
+\]
+
+For paired \(z,z'\), define locally
+\[
+\equiv^\mu_{(z,z')}
+\stackrel{\triangle}{=}
+\sum_{a\in\operatorname{supp}(\mu)}
+\ket a_z\bra a
+\otimes
+\ket a_{z'}\bra a .
+\]
+
+For a pair of classical logical references \(z,z'\) of the same finite value
+domain \(D\), define locally
+\[
+\equiv^{D}_{(z,z')}
+\stackrel{\triangle}{=}
+\sum_{a\in D}
+\ket a_z\bra a
+\otimes
+\ket a_{z'}\bra a .
+\]
+
+For probability-register entries \(p[i],p'[j]\),
+\[
+\equiv^{\mu}_{(p[i],p'[j])}
+\stackrel{\triangle}{=}
+\equiv^{\operatorname{supp}(\mu)}_{(p[i],p'[j])}.
+\]
+
+For a pair of quantum logical references \(\bar q[i],\bar q'[j]\),
+\[
+\equiv_{(\bar q[i],\bar q'[j])}
+\]
+is symmetric quantum equality:
+\[
+=_{\mathrm{sym}}
+=
+\frac{1}{2}(I\otimes I+\mathsf{SWAP})
+\]
+on the two resolved systems, extended by identity.
+
+For whole-list equality,
+\[
+\equiv_{(g,g')}
+\]
+is interpreted under \((\xi,\xi')\).  If
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+\qquad
+\operatorname{desc}_{\xi'}(g')=(\ell'_{g'},\alpha'_{g'}),
+\qquad
+\ell_g=\ell'_{g'},
+\]
+then
+\[
+\equiv_{(g,g')}
+\stackrel{\triangle}{=}
+\bigwedge_{t=1}^{\ell_g}
+\equiv_{(g[t],g'[t])}.
+\]
+If the lengths are not equal, the denotation is \(0\).
+
+For fixed-length list equality,
+\[
+\equiv_{(g[1,\ldots,n],g'[1,\ldots,n'])}
+\]
+is interpreted under \((\xi,\xi')\).  If \(n=n'\), then
+\[
+\equiv_{(g[1,\ldots,n],g'[1,\ldots,n])}
+\stackrel{\triangle}{=}
+\bigwedge_{t=1}^{n}
+\equiv_{(g[t],g'[t])}.
+\]
+If \(n\neq n'\), the denotation is \(0\).
+
+Filter-indexed view equality is interpreted under \((\xi,\xi')\).  If
+\[
+\llbracket\varphi\rrbracket_{\xi}=F,
+\qquad
+\llbracket\varphi'\rrbracket_{\xi'}=F',
+\]
+then
+\[
+\equiv_{(g^{\varphi},g'^{\varphi'})}
+\]
+is nonzero only when
+\[
+\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+\qquad
+\operatorname{desc}_{\xi'}(g')=(\ell'_{g'},\alpha'_{g'}),
+\]
+\[
+\ell_g=\ell'_{g'},
+\qquad
+F,F'\in\{0,1\}^{\ell_g},
+\qquad
+F=F'.
+\]
+Under these conditions, it is ordinary equality on the resolved ordered views
+\[
+\mathsf{phys}_{\xi}(g^{\varphi})
+\qquad\text{and}\qquad
+\mathsf{phys}_{\xi'}(g'^{\varphi'}).
+\]
+If any condition fails, the denotation is \(0\).
+
+For projective assertions \(\Phi,\Psi\), define \(\Phi\land\Psi\),
+\(\Phi\lor\Psi\), and \(\neg\Phi\) branchwise:
+\[
+\llbracket \Phi\land\Psi\rrbracket_{\xi,\xi'}
+=
+\operatorname{proj}
+\left(
+\operatorname{Im}\llbracket \Phi\rrbracket_{\xi,\xi'}
+\cap
+\operatorname{Im}\llbracket \Psi\rrbracket_{\xi,\xi'}
+\right),
+\]
+\[
+\llbracket \Phi\lor\Psi\rrbracket_{\xi,\xi'}
+=
+\operatorname{proj}
+\left(
+\operatorname{Im}\llbracket \Phi\rrbracket_{\xi,\xi'}
++
+\operatorname{Im}\llbracket \Psi\rrbracket_{\xi,\xi'}
+\right),
+\]
+\[
+\llbracket \neg\Phi\rrbracket_{\xi,\xi'}
+=
+I_{\mathsf{Reg}^{L,R}}
+-
+\llbracket \Phi\rrbracket_{\xi,\xi'}.
+\]
+If
+\[
+\llbracket\Phi\rrbracket_{\xi,\xi'}
+\llbracket\Psi\rrbracket_{\xi,\xi'}=0
+\]
+branchwise, then branchwise
+\[
+\Phi\lor\Psi=\Phi+\Psi.
+\]
+
+The notation
+\[
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{\mathcal U}(\Phi)
+\right)
+\]
+means the local register-view projection defined branchwise by
+\[
+\llbracket
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{\mathcal U}(\Phi)
+\right)
+\rrbracket_{\xi,\xi'}
+=
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{\mathsf{phys}_{\xi,\xi'}(\mathcal U)}
+\left(
+\llbracket\Phi\rrbracket_{\xi,\xi'}
+\right)
+\right).
+\]
+This operation traces only register payload systems.  It does not erase or
+modify descriptor data.
+
+The separated conjunction
+\[
+\Phi_{\mathcal V} * C_{\mathcal U}
+\]
+is well formed only when the current auxiliary resource contexts certify that
+\(\mathcal V\) and \(\mathcal U\) are live and physically disjoint on each
+side.  Semantically, it is interpreted branchwise as
+\[
+\Phi_{\mathcal V} * C_{\mathcal U}
+\stackrel{\triangle}{=}
+\Phi_{\mathcal V}\land C_{\mathcal U}.
+\]
+
+Write \(\equiv\) when the view index is clear.
+\end{definition}
+
+\begin{definition}[Approximate Classical-Quantum Lifting]
+For c-q states
+\[
+\Delta=(\rho_{\xi})_{\xi},
+\qquad
+\Delta'=(\rho'_{\xi'})_{\xi'},
+\]
+write
+\[
+\Delta\ \Phi^\delta\ \Delta'
+\]
+if there exists a witness
+\[
+\pi=(\omega_{\xi,\xi'})_{\xi,\xi'}
+\]
+such that
+\[
+\omega_{\xi,\xi'}
+\in
+\operatorname{SepD}_{\le 1}(\mathcal H_L:\mathcal H_R),
+\]
+\[
+\sum_{\xi'}
+\operatorname{Tr}_R(\omega_{\xi,\xi'})
+=
+\rho_{\xi},
+\]
+\[
+\sum_{\xi}
+\operatorname{Tr}_L(\omega_{\xi,\xi'})
+=
+\rho'_{\xi'},
+\]
+and
+\[
+\sum_{\xi,\xi'}
+\operatorname{Tr}
+\left(
+\llbracket\Phi\rrbracket_{\xi,\xi'}
+\omega_{\xi,\xi'}
+\right)
+\ge
+\operatorname{Tr}(\pi)-\delta .
+\]
+
+Here
+\[
+\operatorname{Tr}(\pi)
+\stackrel{\triangle}{=}
+\sum_{\xi,\xi'}
+\operatorname{Tr}(\omega_{\xi,\xi'}).
+\]
+
+For \(\delta=0\), write
+\[
+\Delta\ \Phi\ \Delta' .
+\]
+\end{definition}
+
+Here
+\[
+\operatorname{SepD}_{\le 1}(\mathcal H_L:\mathcal H_R)
+\]
+denotes the set of sub-normalized separable positive operators. That is,
+\[
+\omega\in\operatorname{SepD}_{\le 1}(\mathcal H_L:\mathcal H_R)
+\]
+iff
+\[
+\omega
+=
+\sum_k p_k\,
+\rho^L_k\otimes\rho^R_k,
+\qquad
+p_k\ge 0,
+\qquad
+\sum_k p_k\le 1,
+\]
+for some
+\[
+\rho^L_k\in D(\mathcal H_L),
+\qquad
+\rho^R_k\in D(\mathcal H_R).
+\]
+
+
+
+\subsection{\textbf{Relational Judgment System}}
+\begin{definition}[Symbolic Proof Context]
+\(\Gamma\) contains persistent symbolic facts: protocol parameters, arithmetic,
+and name assumptions. Liveness/freshness/separation are
+certified by a resource system, not stored in \(\Gamma\). Entailments have form
+\[
+\Gamma\vDash \Phi\Longrightarrow\Psi.
+\]
+\end{definition}
+
+\begin{definition}[Paired Logical Views]
+A paired logical view is a finite list
+\[
+\mathcal V=
+[(u_1,u'_1),\ldots,(u_m,u'_m)],
+\]
+where \(u_i,u'_i\) are corresponding left/right logical references or lists.
+
+Resolution is componentwise:
+\[
+\mathsf{phys}_{\xi,\xi'}(u,u')
+=
+\left(
+\mathsf{phys}_{\xi}(u),
+\mathsf{phys}_{\xi'}(u')
+\right).
+\]
+\end{definition}
+
+
+\begin{definition}[Classical-Quantum Relational Judgment]
+A relational judgment has the form
+\[
+\Gamma
+\vdash
+P\sim_{\delta}P'
+:
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}.
+\]
+
+It is valid iff for all well-typed \(\Delta,\Delta'\), every witness \(\pi\)
+for
+\[
+\Delta\ \Phi_{\mathcal V}\ \Delta'
+\]
+with
+\[
+\operatorname{supp}_{\mathsf{cl}}(\pi)\models\Gamma
+\]
+satisfies
+\[
+\llbracket P\rrbracket(\Delta)
+\ \Psi_{\mathcal W}^{\delta}\
+\llbracket P'\rrbracket(\Delta').
+\]
+
+\(\delta\in\mathbb R_{\ge 0}\) bounds postcondition-violating mass. For
+\(\delta=0\), write
+\[
+\Gamma
+\vdash
+P\sim P'
+:
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}.
+\]
+\end{definition}
+
+
+\begin{definition}[Auxiliary-Certified Relational Derivation]
+\[
+\Gamma\vdash \mathcal U\#\mathcal V
+\]
+means \(\Gamma\)'s symbolic facts hold and an Auxiliary resource system certifies the
+needed left/right liveness and separation.
+\end{definition}
+
+\begin{definition}[Command-Mode Footprints]
+For every program \(P\), we use four footprint components:
+\[
+\operatorname{dacc}(P),
+\qquad
+\operatorname{dupd}(P),
+\]
+\[
+\operatorname{racc}(P),
+\qquad
+\operatorname{rupd}(P).
+\]
+
+\(\operatorname{dacc}(P)\) and \(\operatorname{dupd}(P)\) are the
+descriptor-data access and update footprints.
+
+\(\operatorname{racc}(P)\) and \(\operatorname{rupd}(P)\) are the
+register-payload access and update footprints.
+
+\[
+\operatorname{acc}(P)
+\stackrel{\triangle}{=}
+\operatorname{dacc}(P)
+\cup
+\operatorname{racc}(P),
+\]
+\[
+\operatorname{upd}(P)
+\stackrel{\triangle}{=}
+\operatorname{dupd}(P)
+\cup
+\operatorname{rupd}(P).
+\]
+
+For paired programs,
+\[
+\operatorname{acc}(P,P')
+\stackrel{\triangle}{=}
+\operatorname{acc}(P)\cup\operatorname{acc}(P'),
+\qquad
+\operatorname{upd}(P,P')
+\stackrel{\triangle}{=}
+\operatorname{upd}(P)\cup\operatorname{upd}(P').
+\]
+
+Updates are included in the corresponding access mode:
+\[
+\operatorname{dupd}(P)\subseteq \operatorname{dacc}(P),
+\qquad
+\operatorname{rupd}(P)\subseteq \operatorname{racc}(P).
+\]
+
+For descriptor integer expressions,
+\[
+\operatorname{dacc}(N)=\emptyset,
+\qquad
+\operatorname{dacc}(\iota)=\{\iota\}.
+\]
+
+For filter expressions,
+\[
+\operatorname{dacc}(f)=\{f\},
+\qquad
+\operatorname{dacc}(\mathbf 1_J)=\operatorname{dacc}(J).
+\]
+
+For classical expressions,
+\[
+\operatorname{dacc}(a)=\emptyset,
+\qquad
+\operatorname{racc}(a)=\emptyset,
+\]
+\[
+\operatorname{dacc}(\iota)=\{\iota\},
+\qquad
+\operatorname{racc}(\iota)=\emptyset,
+\]
+\[
+\operatorname{dacc}(x[i])=\{x\},
+\qquad
+\operatorname{racc}(x[i])=\{x[i]\},
+\]
+and
+\[
+\operatorname{dacc}(E_1+E_2)
+=
+\operatorname{dacc}(E_1)\cup\operatorname{dacc}(E_2),
+\]
+\[
+\operatorname{racc}(E_1+E_2)
+=
+\operatorname{racc}(E_1)\cup\operatorname{racc}(E_2).
+\]
+
+For predicates \(B\), descriptor and register access footprints are defined
+recursively from their subexpressions. The constants \(\top,\bot\) have empty
+footprints.
+
+For
+\[
+f:=_{\$}\mathbf{shuffle}(m)_N,
+\]
+\[
+\operatorname{dacc}=\operatorname{dupd}=\{f\},
+\qquad
+\operatorname{racc}=\operatorname{rupd}=\emptyset.
+\]
+
+For
+\[
+\iota:=\mathbf{length}(g),
+\]
+\[
+\operatorname{dacc}=\{g,\iota\},
+\qquad
+\operatorname{dupd}=\{\iota\},
+\qquad
+\operatorname{racc}=\operatorname{rupd}=\emptyset.
+\]
+
+For
+\[
+(g_0,g_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g,
+\]
+\[
+\operatorname{dacc}
+=
+\{f,g,g_0,g_1\}
+\cup
+\operatorname{dacc}(J),
+\qquad
+\operatorname{dupd}=\{g_0,g_1\},
+\qquad
+\operatorname{racc}=\operatorname{rupd}=\emptyset.
+\]
+
+For
+\[
+g
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1,
+\]
+\[
+\operatorname{dacc}
+=
+\{f,g,g_0,g_1\}
+\cup
+\operatorname{dacc}(J),
+\qquad
+\operatorname{dupd}=\{g\},
+\qquad
+\operatorname{racc}=\operatorname{rupd}=\emptyset.
+\]
+
+For register commands,
+\[
+\operatorname{dupd}(R)=\emptyset.
+\]
+
+For
+\[
+\mathbf{skip}
+\qquad\text{and}\qquad
+\mathbf{abort},
+\]
+all four footprints are empty.
+
+For
+\[
+x[i]:=E,
+\]
+\[
+\operatorname{dacc}
+=
+\{x\}\cup\operatorname{dacc}(E),
+\]
+\[
+\operatorname{racc}
+=
+\{x[i]\}\cup\operatorname{racc}(E),
+\qquad
+\operatorname{rupd}=\{x[i]\}.
+\]
+
+For
+\[
+z:=_{\$}\mathbf{rand}(n,\varphi),
+\]
+\[
+\operatorname{dacc}
+=
+\{z\}\cup\operatorname{dacc}(\varphi),
+\]
+\[
+\operatorname{racc}
+=
+\operatorname{rupd}
+=
+\{z[1,\ldots,n]\}.
+\]
+
+For
+\[
+z:=_{\$}\textit{rand}_{n}(C_m),
+\]
+\[
+\operatorname{dacc}=\{z\},
+\qquad
+\operatorname{racc}
+=
+\operatorname{rupd}
+=
+\{z[1,\ldots,n]\}.
+\]
+
+For
+\[
+\bar q[i]:=\ket 0,
+\]
+\[
+\operatorname{dacc}=\{\bar q\},
+\qquad
+\operatorname{racc}=\operatorname{rupd}=\{\bar q[i]\}.
+\]
+
+For
+\[
+\bar q[i]\asteq U,
+\]
+\[
+\operatorname{dacc}=\{\bar q\},
+\qquad
+\operatorname{racc}=\operatorname{rupd}=\{\bar q[i]\}.
+\]
+
+For
+\[
+x[i]:=\mathcal M[\bar q[j]],
+\]
+\[
+\operatorname{dacc}=\{x,\bar q\},
+\]
+\[
+\operatorname{racc}=\{x[i],\bar q[j]\},
+\qquad
+\operatorname{rupd}=\{x[i],\bar q[j]\}.
+\]
+
+For sequencing,
+\[
+\operatorname{dacc}(S_0;S_1)
+=
+\operatorname{dacc}(S_0)\cup\operatorname{dacc}(S_1),
+\]
+\[
+\operatorname{dupd}(S_0;S_1)
+=
+\operatorname{dupd}(S_0)\cup\operatorname{dupd}(S_1),
+\]
+\[
+\operatorname{racc}(S_0;S_1)
+=
+\operatorname{racc}(S_0)\cup\operatorname{racc}(S_1),
+\]
+\[
+\operatorname{rupd}(S_0;S_1)
+=
+\operatorname{rupd}(S_0)\cup\operatorname{rupd}(S_1).
+\]
+
+For conditionals,
+\[
+\operatorname{dacc}
+\left(
+\mathbf{if}\ B\rightarrow R_0,\ \mathbf{else}\rightarrow R_1
+\right)
+=
+\operatorname{dacc}(B)
+\cup
+\operatorname{dacc}(R_0)
+\cup
+\operatorname{dacc}(R_1),
+\]
+\[
+\operatorname{racc}
+\left(
+\mathbf{if}\ B\rightarrow R_0,\ \mathbf{else}\rightarrow R_1
+\right)
+=
+\operatorname{racc}(B)
+\cup
+\operatorname{racc}(R_0)
+\cup
+\operatorname{racc}(R_1),
+\]
+\[
+\operatorname{dupd}
+\left(
+\mathbf{if}\ B\rightarrow R_0,\ \mathbf{else}\rightarrow R_1
+\right)
+=
+\emptyset,
+\]
+\[
+\operatorname{rupd}
+\left(
+\mathbf{if}\ B\rightarrow R_0,\ \mathbf{else}\rightarrow R_1
+\right)
+=
+\operatorname{rupd}(R_0)
+\cup
+\operatorname{rupd}(R_1).
+\]
+\end{definition}
+
+\begin{definition}[Footprint Equality]
+For a mixed footprint set \(A\), the notation
+\[
+\equiv_A
+\]
+means the conjunction of the local equalities generated by the typed elements
+of \(A\), interpreted under the current view index.
+
+For filter entries,
+\[
+f\in A
+\quad\leadsto\quad
+\equiv_{(f,f')}.
+\]
+
+For descriptor integer entries,
+\[
+\iota\in A
+\quad\leadsto\quad
+\equiv_{(\iota,\iota')}.
+\]
+
+For logical descriptor names,
+\[
+g\in A
+\quad\leadsto\quad
+\equiv_{(g,g')}.
+\]
+
+For register-payload entries,
+\[
+u\in A
+\quad\leadsto\quad
+\equiv_{(u,u')},
+\]
+where \(u,u'\) are resolved using the current view index.
+
+Thus
+\[
+\equiv_{\operatorname{acc}(P)}
+\]
+means the local view-index equality needed to run the two copies of \(P\) in
+lockstep, and
+\[
+\equiv_{\operatorname{upd}(P)}
+\]
+means the corresponding local equality on the updated views.
+\end{definition}
+
+\begin{definition}[Descriptor Dependencies of View Indices]
+The descriptor dependency set of a view index is written
+\[
+\operatorname{ddep}(\mathcal V).
+\]
+
+For ordinary logical references and lists,
+\[
+\operatorname{ddep}(g[i])=\{g\},
+\qquad
+\operatorname{ddep}(g[1,\ldots,n])=\{g\},
+\qquad
+\operatorname{ddep}(g)=\{g\}.
+\]
+
+For descriptor integer expressions,
+\[
+\operatorname{ddep}(N)=\emptyset,
+\qquad
+\operatorname{ddep}(\iota)=\{\iota\}.
+\]
+
+For filter expressions,
+\[
+\operatorname{ddep}(f)=\{f\},
+\qquad
+\operatorname{ddep}(\mathbf 1_J)=\operatorname{ddep}(J).
+\]
+
+For filter-induced views,
+\[
+\operatorname{ddep}(g^{f})
+=
+\{g,f\}.
+\]
+
+For merge-induced views,
+\[
+\operatorname{ddep}((g_0,g_1)^{\uparrow f})
+=
+\{g_0,g_1,f\}.
+\]
+
+For paired and packaged views, dependencies are collected componentwise.
+
+For a local assertion \(\Phi_{\mathcal V}\),
+\[
+\operatorname{ddep}(\Phi_{\mathcal V})
+\stackrel{\triangle}{=}
+\operatorname{ddep}(\mathcal V).
+\]
+\end{definition}
+
+\textbf{Structural proof rules for QKD:}
+
+\[
+\text{\rm (Conseq)}
+\quad
+\frac{
+\Gamma
+\vDash
+\Phi'_{\mathcal V'}
+\Longrightarrow
+\Phi_{\mathcal V}
+\qquad
+\Gamma
+\vDash
+\Psi_{\mathcal W}
+\Longrightarrow
+\Psi'_{\mathcal W'}
+\qquad
+\delta\leq\delta'
+\qquad
+\Gamma
+\vdash
+P\sim_{\delta}P':
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}
+}{
+\Gamma
+\vdash
+P\sim_{\delta'}P':
+\Phi'_{\mathcal V'}
+\Longrightarrow
+\Psi'_{\mathcal W'}
+}.
+\]
+
+\[
+\text{\rm (Weaken-\(\Gamma\))}
+\quad
+\frac{
+\Gamma
+\vdash
+P\sim_{\delta}P':
+\Phi\Longrightarrow\Psi
+\qquad
+\Gamma'\vDash\Gamma
+}{
+\Gamma'
+\vdash
+P\sim_{\delta}P':
+\Phi\Longrightarrow\Psi
+}.
+\]
+
+\[
+\text{\rm (Seq)}
+\quad
+\frac{
+\Gamma
+\vdash
+P_0\sim_{\delta}P_1:
+\Phi\Longrightarrow\Theta
+\qquad
+\Gamma
+\vdash
+P'_0\sim_{\delta'}P'_1:
+\Theta\Longrightarrow\Psi
+}{
+\Gamma
+\vdash
+P_0;P'_0
+\sim_{\delta+\delta'}
+P_1;P'_1
+:
+\Phi\Longrightarrow\Psi
+}.
+\]
+
+\[
+\text{\rm (Skip)}
+\quad
+\Gamma
+\vdash
+\mathbf{skip}\sim\mathbf{skip}:
+\Phi\Longrightarrow\Phi .
+\]
+
+\[
+\text{\rm (Abort)}
+\quad
+\Gamma
+\vdash
+\mathbf{abort}\sim\mathbf{abort}:
+\Phi\Longrightarrow\Psi .
+\]
+
+\[
+\text{\rm (Ident)}
+\quad
+{
+\Gamma
+\vdash
+P\sim P:
+\equiv_{\operatorname{acc} (P)}
+\Longrightarrow
+\equiv_{\operatorname{upd} (P)}
+}.
+\]
+
+\[
+\text{\rm (Comp)}
+\quad
+\frac{
+\Gamma
+\vdash
+P\sim_{\delta_1}P':
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}
+\qquad
+\Gamma
+\vdash
+P'\sim_{\delta_2}P'':
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}
+}{
+\Gamma
+\vdash
+P\sim_{\delta_1+\delta_2}P'':
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}
+}.
+\]
+
+An assertion \(C_{\mathcal U}\) is indexed by \(\mathcal U\). 
+
+\[
+\text{\rm (Classical-Frame${}^{*}$)}
+\quad
+\frac{
+\Gamma
+\vdash
+P\sim_{\delta}P':
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}\qquad
+\Gamma\vdash
+\mathcal U
+\#
+\operatorname{upd}(P,P')}{
+\Gamma
+\vdash
+P\sim_{\delta}P':
+\Phi_{\mathcal V} * C_{\mathcal U}
+\Longrightarrow
+\Psi_{\mathcal W} * C_{\mathcal U}
+}.
+\]
+
+\[
+\text{\rm (Quantum-Frame${}^{*}$)}
+\quad
+\frac{
+\begin{array}{c}
+\Gamma
+\vdash
+P\sim_{\delta}P':
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}
+\qquad
+\Gamma\vdash
+\mathcal U
+\#
+\operatorname{acc}(P,P')
+\end{array}
+}{
+\Gamma
+\vdash
+P\sim_{\delta}P':
+\Phi_{\mathcal V} * C_{\mathcal U}
+\Longrightarrow
+\Psi_{\mathcal W} * C_{\mathcal U}
+}.
+\]
+
+
+\[
+\text{\rm (Swap)}
+\quad
+\frac{
+\Gamma\vdash
+\operatorname{acc}(P_0)\#
+\operatorname{acc}(P_1)
+}{
+\Gamma
+\vdash
+P_0;P_1
+\sim
+P_1;P_0
+:
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}
+}.
+\]
+
+\textbf{Construct-specific rules for QKD.}
+
+
+\[
+\text{\rm (Assign-classical)}
+\quad
+\Gamma
+\vdash
+x[i]:=a_1
+\sim
+x'[j]:=a_2
+:
+\Phi
+\Longrightarrow
+\ket{a_1}_{x[i]}\bra{a_1}
+\land
+\ket{a_2}_{x'[j]}\bra{a_2}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{x[i],x'[j]}(\Phi)
+\right).
+\]
+
+\[
+\text{\rm (Assign-classical-L)}
+\quad
+\Gamma
+\vdash
+x[i]:=a
+\sim
+\mathbf{skip}
+:
+\Phi
+\Longrightarrow
+\ket a_{x[i]}\bra a
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{x[i]}(\Phi)
+\right).
+\]
+
+\[
+\text{\rm (Init-Quantum)}
+\quad
+\Gamma
+\vdash
+\bar q[i]:=\ket 0
+\sim
+\bar q'[j]:=\ket 0
+:
+\Phi
+\Longrightarrow
+\ket 0_{\bar q[i]}\bra 0
+\land
+\ket 0_{\bar q'[j]}\bra 0
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{\bar q[i],\bar q'[j]}(\Phi)
+\right).
+\]
+
+\[
+\text{\rm (Init-Quantum-L)}
+\quad
+\Gamma
+\vdash
+\bar q[i]:=\ket 0
+\sim
+\mathbf{skip}
+:
+\Phi
+\Longrightarrow
+\ket 0_{\bar q[i]}\bra 0
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{\bar q[i]}(\Phi)
+\right).
+\]
+
+
+
+\[
+\text{\rm (Rand)}
+\quad
+\frac{
+\Gamma\vDash n=n'
+}{
+\Gamma
+\vdash
+z:=_{\$}\mathbf{rand}(n,\varphi)
+\sim
+z':=_{\$}\mathbf{rand}(n',\varphi')
+:
+\Phi
+\land
+\equiv_{(\varphi,\varphi')}
+\Longrightarrow
+\equiv_{(z[1,\ldots,n],z'[1,\ldots,n'])}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{z[1,\ldots,n],z'[1,\ldots,n']}(\Phi)
+\right)
+}.
+\]
+
+\[
+\text{\rm (Rand-L)}
+\quad
+\Gamma
+\vdash
+z:=_{\$}\mathbf{rand}(n,\varphi)
+\sim
+\mathbf{skip}
+:
+\Phi
+\Longrightarrow
+\Pi^{\mathbb B^n}_{z[1,\ldots,n]}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{z[1,\ldots,n]}(\Phi)
+\right).
+\]
+
+
+\[
+\text{\rm (Shuffle)}
+\quad
+\frac{
+\Gamma
+\vDash
+m=m'\land N=N'
+}{
+\Gamma
+\vdash
+f:=_{\$}\mathbf{shuffle}(m)_N
+\sim
+f':=_{\$}\mathbf{shuffle}(m')_{N'}
+:
+\Phi
+\Longrightarrow
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{f,f'}\Phi\right)\land
+\equiv_{(f,f')}
+}.
+\]
+
+\[
+\text{\rm (Shuffle-L)}
+\quad
+\Gamma
+\vdash
+f:=_{\$}\mathbf{shuffle}(m)_N
+\sim
+\mathbf{skip}
+:
+\Phi
+\Longrightarrow
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{f}\Phi\right)\land \Pi_f^{m,N}.
+\]
+
+\[
+\text{\rm (Length)}
+\quad
+{
+\Gamma
+\vdash
+\iota:=\mathbf{length}(g)
+\sim
+\iota':=\mathbf{length}(g')
+:
+\Phi\land\equiv_{(g,g')}
+\Longrightarrow
+\operatorname{proj}\left(\operatorname{Tr}_{\iota,\iota'}\Phi\right)\land\equiv_{(\iota,\iota')}
+}.
+\]
+
+\[
+\text{\rm (CodeRand)}
+\quad
+\frac{
+\Gamma
+\vDash
+C_m=C_m'\land n=n'
+}{
+\Gamma
+\vdash
+p :=_{\$}\textit{rand}_{n}(C_m)
+\sim
+p':=_{\$}\textit{rand}_{n'}(C_m')
+:
+\Phi
+\Longrightarrow
+\equiv_{(p,p')}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{p,p'}(\Phi)
+\right)
+}.
+\]
+
+\[
+\text{\rm (CodeRand-L)}
+\quad
+\Gamma
+\vdash
+p :=_{\$}\textit{rand}_{n}(C_m)
+\sim
+\mathbf{skip}
+:
+\Phi
+\Longrightarrow
+\Pi_{p}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{p}(\Phi)
+\right).
+\]
+
+\[
+\text{\rm (IID)}
+\quad
+\frac{
+\Gamma\vDash m=m'\land N=N'
+}{
+\begin{aligned}
+\Gamma
+\vdash\;&
+f:=_{\$}\mathbf{shuffle}(m)_N;\
+p:=_{\$}\mathbf{rand}(N,f)
+\\
+&\sim
+p':=_{\$}\mathbf{rand}(N',\mathbf 1_{N'});\
+f':=_{\$}\mathbf{shuffle}(m')_{N'}:
+\\
+&
+\Phi
+\Longrightarrow
+\equiv_{(f,f')}
+\land
+\equiv_{(p[1,\ldots,N],p'[1,\ldots,N'])}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{p[1,\ldots,N],p'[1,\ldots,N']}(\Phi)
+\right).
+\end{aligned}
+}
+\]
+
+
+
+\[
+\text{\rm (UT)}
+\quad
+\Gamma
+\vdash
+\bar q[\mathbf i]\asteq U
+\sim
+\bar q'[\mathbf j]\asteq U'
+:
+\Phi
+\Longrightarrow
+\left(
+U_{\bar q[\mathbf i]}
+\otimes
+U'_{\bar q'[\mathbf j]}
+\right)
+\Phi
+\left(
+U_{\bar q[\mathbf i]}
+\otimes
+U'_{\bar q'[\mathbf j]}
+\right)^{\dagger}.
+\]
+
+\[
+\text{\rm (UT-L)}
+\quad
+\Gamma
+\vdash
+\bar q[\mathbf i]\asteq U
+\sim
+\mathbf{skip}
+:
+\Phi
+\Longrightarrow
+U_{\bar q[\mathbf i]}
+\Phi
+U_{\bar q[\mathbf i]}^\dagger .
+\]
+
+We write
+\[
+\Gamma
+\vDash
+\Phi\Longrightarrow B\leftrightarrow B'
+\]
+to abbreviate
+\[
+\Gamma\vDash \Phi\land B\Longrightarrow B',
+\qquad
+\Gamma\vDash \Phi\land\neg B\Longrightarrow \neg B'.
+\]
+We write
+\[
+\Gamma
+\vDash
+\Phi\Longrightarrow_B\{\Theta_0,\Theta_1\}
+\]
+to abbreviate
+\[
+\Gamma\vDash \Phi\land B\Longrightarrow\Theta_0,
+\qquad
+\Gamma\vDash \Phi\land\neg B\Longrightarrow\Theta_1.
+\]
+
+\[
+\text{\rm (If)}
+\quad
+\frac{
+\Gamma
+\vDash
+\Phi\Longrightarrow B\leftrightarrow B'
+\qquad
+\Gamma
+\vDash
+\Phi\Longrightarrow_B\{\Theta_0,\Theta_1\}
+\qquad
+\Gamma
+\vdash
+P_0\sim P'_0:
+\Theta_0\Longrightarrow\Psi
+\qquad
+\Gamma
+\vdash
+P_1\sim P'_1:
+\Theta_1\Longrightarrow\Psi
+}{
+\Gamma
+\vdash
+\mathbf{if}\ B\rightarrow P_0,\ \mathbf{else}\rightarrow P_1
+\sim
+\mathbf{if}\ B'\rightarrow P'_0,\ \mathbf{else}\rightarrow P'_1
+:
+\Phi
+\Longrightarrow
+\Psi
+}.
+\]
+
+\[
+\text{\rm (If-L)}
+\quad
+\frac{
+\Gamma
+\vDash
+\Phi\Longrightarrow_B\{\Theta_0,\Theta_1\}
+\qquad
+\Gamma
+\vdash
+P_0\sim P:
+\Theta_0\Longrightarrow\Psi
+\qquad
+\Gamma
+\vdash
+P_1\sim P:
+\Theta_1\Longrightarrow\Psi
+}{
+\Gamma
+\vdash
+\mathbf{if}\ B\rightarrow P_0,\ \mathbf{else}\rightarrow P_1
+\sim
+P
+:
+\Phi
+\Longrightarrow
+\Psi
+}.
+\]
+
+
+
+
+\begin{definition}[Measurement Condition]
+Let
+\[
+\mathcal M_1=\{M_1^{r}\}_{r\in[m]},
+\qquad
+\mathcal M_2=\{M_2^{r}\}_{r\in[m]}
+\]
+be two measurements with the same outcome set
+\([m]=\{1,\ldots,m\}\). The measurement condition
+\[
+\Gamma
+\vDash
+\mathcal M_1\approx\mathcal M_2:
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}
+\]
+means that, for every \(r\in[m]\) and every pair of well-typed
+c-q states \(\Delta,\Delta'\), if
+\[
+\Delta\ \Phi_{\mathcal V}\ \Delta'
+\]
+has a witness \(\pi\) satisfying
+\[
+\operatorname{supp}_{\mathsf{cl}}(\pi)\models\Gamma,
+\]
+then
+\[
+M_1^r\Delta M_1^{r\dagger}
+\ \Psi_{\mathcal W}\
+M_2^r\Delta'M_2^{r\dagger}.
+\]
+
+For a one-sided measurement, the condition
+\[
+\Gamma
+\vDash
+\mathcal M\approx\mathcal I:
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}
+\]
+means that, for every pair of well-typed c-q states
+\(\Delta,\Delta'\), if
+\[
+\Delta\ \Phi_{\mathcal V}\ \Delta'
+\]
+has a witness \(\pi\) satisfying
+\[
+\operatorname{supp}_{\mathsf{cl}}(\pi)\models\Gamma,
+\]
+then there exists a family of c-q states
+\[
+\{\Delta'_r\}_{r\in[m]}
+\qquad\text{such that}\qquad
+\sum_{r\in[m]}\Delta'_r=\Delta',
+\]
+and, for every \(r\in[m]\),
+\[
+M^r\Delta M^{r\dagger}
+\ \Psi_{\mathcal W}\
+\Delta'_r.
+\]
+\end{definition}
+
+For a classical logical reference \(z\) with values in \([m]\), define
+\[
+\Pi_z^{[m]}
+\stackrel{\triangle}{=}
+\sum_{r\in[m]}
+\ket r_z\bra r .
+\]
+For paired classical logical references \(z,z'\), define
+\[
+\equiv^{[m]}_{(z,z')}
+\stackrel{\triangle}{=}
+\sum_{r\in[m]}
+\ket r_z\bra r
+\otimes
+\ket r_{z'}\bra r .
+\]
+
+\[
+\text{\rm (Meas)}
+\quad
+\frac{
+\Gamma
+\vDash
+\mathcal M_1\approx\mathcal M_2:
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}
+}{
+\Gamma
+\vdash
+x[i]:=\mathcal M_1[\bar q[j]]
+\sim
+x'[i']:=\mathcal M_2[\bar q'[j']]
+:
+\Phi_{\mathcal V}
+\Longrightarrow
+\equiv^{[m]}_{(x[i],x'[i'])}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{x[i],x'[i']}(\Psi_{\mathcal W})
+\right)
+}.
+\]
+
+\[
+\text{\rm (Meas-L)}
+\quad
+\frac{
+\Gamma
+\vDash
+\mathcal M\approx\mathcal I:
+\Phi_{\mathcal V}
+\Longrightarrow
+\Psi_{\mathcal W}
+}{
+\Gamma
+\vdash
+x[i]:=\mathcal M[\bar q[j]]
+\sim
+\mathbf{skip}
+:
+\Phi_{\mathcal V}
+\Longrightarrow
+\Pi^{[m]}_{x[i]}
+\land
+\operatorname{proj}
+\left(
+\operatorname{Tr}_{x[i]}(\Psi_{\mathcal W})
+\right)
+}.
+\]
+
+\[
+\text{\rm (CNOT)}
+\quad
+{\begin{aligned}
+\Gamma
+&\vdash
+\bar q_1,\bar q_2\asteq \mathrm{CNOT};
+\ c[t]:=\mathcal M_{\mathrm{com}}[\bar q_1]
+\sim
+c'[t']:=\mathcal M_{\mathrm{com}}[\bar q'_1];
+\ \mathbf{if}\ c'[t']=0\rightarrow\mathbf{skip},
+\ \mathbf{else}\rightarrow \bar q'_2\asteq X :\\ 
+&
+\equiv_{((\bar q_1,\bar q_2),(\bar q'_1,\bar q'_2))}
+\Longrightarrow
+\equiv_{(c[t],c'[t'])}
+\land
+\equiv_{((\bar q_1,\bar q_2),(\bar q'_1,\bar q'_2))}
+\end{aligned}}
+\]
+
+\[
+\text{\rm (If-Stru-1)}
+\quad
+\frac{
+\Gamma\vdash
+\operatorname{upd}(c_2)
+\#
+\operatorname{acc}(b)
+}{
+\Gamma
+\vdash
+c_2;\
+\mathbf{if}\ b=0\rightarrow c_0,\ \mathbf{else}\rightarrow c_1
+\sim
+\mathbf{if}\ b=0\rightarrow c_2;c_0,\ \mathbf{else}\rightarrow c_2;c_1
+:
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}
+}.
+\]
+
+\[
+\text{\rm (If-Stru-2)}
+\quad
+\Gamma
+\vdash
+(\mathbf{if}\ b=0\rightarrow c_0,\ \mathbf{else}\rightarrow c_1);c_2
+\sim
+\mathbf{if}\ b=0\rightarrow c_0;c_2,\ \mathbf{else}\rightarrow c_1;c_2
+:
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}.
+\]
+
+\begin{definition}[Bad Event Assertion]
+Let \(bad\) be a bit-valued failure-event view, also written
+\[
+bad
+\stackrel{\triangle}{=}
+\ket 1_{bad}\bra 1
+\]
+for the projector where \(bad=1\), and define
+\[
+\neg bad
+\stackrel{\triangle}{=}
+I-bad
+=
+\ket 0_{bad}\bra 0.
+\]
+For a left-side bad event write
+\[
+\neg bad\otimes I
+\]
+to act on the left and as identity on the right. This proof-side flag is not a
+terminal QKD observation component.
+\end{definition}
+
+\[
+\text{\rm (UTB)}
+\quad
+\frac{
+\Gamma
+\vdash
+P'_1\sim_{\delta'}P:
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}\land(\neg bad\otimes I)
+\qquad
+\Gamma
+\vdash
+P\sim_{\delta}P':
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}
+}{
+\Gamma
+\vdash
+P'_1\sim_{\delta+\delta'}P':
+\equiv_{\mathcal V}
+\Longrightarrow
+\equiv_{\mathcal V}\land(\neg bad\otimes I)
+}.
+\]
+
+\begin{definition}[Uniformity in a Basis]
+Let
+\(\mathcal B=\{\ket{i}\}_{i=1}^{D}\)
+be an orthonormal basis. \(\rho\) is uniform in \(\mathcal B\) iff measurement
+in \(\mathcal B\) is uniform:
+\[
+p_i=\operatorname{Tr}\left(\ket{i}\bra{i}\rho\right)
+=\langle i|\rho|i\rangle
+=\frac{1}{D}\qquad
+(1\le i\le D).
+\]
+\end{definition}
+
+Uniformity is observable, not uniquely projective; here it is used through the
+sufficient condition \(\ket{+}^{\otimes\ell}\) before computational-basis
+measurement. For
+\[
+\mathcal B=
+\{\ket{s}_{\bar q}:s\in\{0,1\}^{\ell}\},
+\]
+define
+\[
+\ket +_{\bar q}
+=
+\frac{1}{\sqrt{2^\ell}}
+\sum_{s\in\{0,1\}^{\ell}}
+\ket s_{\bar q},
+\qquad
+\Phi_{\bar q}^{\mathcal B}
+=
+\ket +_{\bar q}\bra +.
+\]
+
+\[
+\text{\rm (Uniform)}
+\quad
+\frac{
+\Gamma
+\vDash
+\Phi
+\Longrightarrow
+\Phi_{\bar q}^{\mathcal B}
+}{
+\Gamma
+\vdash
+p
+:=
+\mathcal M_{\mathcal B}[\bar q[1,\ldots,\ell]]
+\sim
+p'
+:=_{\$}
+\mathbf{rand}(\ell)
+:
+\Phi
+\Longrightarrow
+\equiv_{(p,p')}
+}.
+\]
+
+% ============================================================
+% Descriptor-sensitive sift
+% ============================================================
+\begin{definition}[Descriptor Alias Notation]
+Let \(D_f\) be a descriptor command controlled by the filter \(f\). For a view
+set \(\mathcal V\), write
+\[
+\operatorname{src}_{D_f}(\mathcal V),
+\qquad
+\operatorname{tgt}_{D_f}(\mathcal V)
+\]
+for the source-side and target-side versions of \(\mathcal V\).
+
+For
+\[
+D_f
+=
+(g_0,g_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}~J~\mathbf{for}\ g,
+\]
+\[
+\operatorname{src}_{D_f}(g)=g,
+\qquad
+\operatorname{tgt}_{D_f}(g)=(g_0,g_1).
+\]
+
+If
+\[
+D_f
+=
+(\mathcal P_0,\mathcal P_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}~J~\mathbf{for}\ \mathcal P,
+\]
+then
+\[
+\operatorname{src}_{D_f}(\mathcal P)=\mathcal P,
+\qquad
+\operatorname{tgt}_{D_f}(\mathcal P)=(\mathcal P_0,\mathcal P_1).
+\]
+
+If \(D_f\) selects \(b,\bar q\) into \(b_c,\bar q_c,b_k,\bar q_k\), and a
+register command produces \(x_c,x_k\), the rule instance may use
+\[
+\operatorname{tgt}_{D_f}(b,x)=((b_c,x_c),(b_k,x_k)).
+\]
+
+For
+\[
+D_f
+=
+g
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}~J~\mathbf{for}\ g_0,g_1,
+\]
+\[
+\operatorname{src}_{D_f}(g)=(g_0,g_1),
+\qquad
+\operatorname{tgt}_{D_f}(g)=g.
+\]
+
+If
+\[
+D_f
+=
+\mathcal P
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}~J~\mathbf{for}\ \mathcal P_0,\mathcal P_1,
+\]
+then
+\[
+\operatorname{src}_{D_f}(\mathcal P)=(\mathcal P_0,\mathcal P_1),
+\qquad
+\operatorname{tgt}_{D_f}(\mathcal P)=\mathcal P.
+\]
+\end{definition}
+
+\begin{definition}[Alias Compatibility Check]
+The proof-side check
+\[
+\Gamma
+\vdash
+D_f[\mathcal P]
+\cong
+D'_{f'}[\mathcal P']
+\]
+means that the two displayed descriptor commands have the same filter-layout
+form.
+
+The filter relation is written
+\[
+\equiv_{(f,f')}.
+\]
+
+The role of
+\[
+\Gamma
+\vdash
+D_f[\mathcal P]
+\cong
+D'_{f'}[\mathcal P']
+\]
+is that the two constructions have the same descriptor shape: both are
+\textbf{select} constructions or both are \textbf{merge} constructions, with
+the same displayed length parameter \(N\), the same source-length expression
+\(J\), and compatible corresponding components.
+\end{definition}
+
+\begin{definition}[Fiber Side Condition]
+The side condition
+\[
+\Gamma
+\vDash
+C_L
+\sim_{\mathsf{fiber}}
+C_R
+:
+\equiv_{\mathcal U}
+\Longrightarrow
+\equiv_{\mathcal W}
+\]
+is a certified local adapter for register commands that are moved across a
+nearby descriptor construction such as select or merge.
+
+Its purpose is to justify that, after a descriptor command changes the logical
+view names, the same register-side operation can be written using the adapted
+source or target view names.
+
+The commands \(C_L,C_R\) must be descriptor-preserving:
+\[
+\operatorname{dupd}(C_L)=\operatorname{dupd}(C_R)=\emptyset.
+\]
+
+The input view set \(\mathcal U\) and output view set \(\mathcal W\) are
+determined by the displayed register schemas. They are not inferred from
+arbitrary descriptor commands.
+
+Their register effects are recorded by
+\[
+\operatorname{racc}(C_L),
+\operatorname{rupd}(C_L),
+\qquad
+\operatorname{racc}(C_R),
+\operatorname{rupd}(C_R).
+\]
+\end{definition}
+
+
+
+\[
+\text{\rm (Select)}
+\quad
+\frac{
+\Gamma\vDash J=J'
+}{
+\begin{aligned}
+\Gamma
+\vdash\;&
+(\mathcal P_0,\mathcal P_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P
+\sim
+(\mathcal P'_0,\mathcal P'_1)
+:=
+\mathbf{select}_{f'}^{N}\ \mathbf{from}\ J'\ \mathbf{for}\ \mathcal P'
+:
+\\
+&
+\equiv_{(f,f')}\land\equiv_{(\mathcal P,\mathcal P')}
+\Longrightarrow
+\equiv_{((\mathcal P_0,\mathcal P_1),(\mathcal P'_0,\mathcal P'_1))}
+\end{aligned}
+}
+\]
+
+\[
+\text{\rm (Merge)}
+\quad
+\frac{
+\Gamma\vDash J=J'
+}{
+\begin{aligned}
+\Gamma
+\vdash\;&
+\mathcal P
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P_0,\mathcal P_1
+\sim
+\mathcal P'
+:=
+\mathbf{merge}_{f'}^{N}\ \mathbf{from}\ J'\ \mathbf{for}\ \mathcal P'_0,\mathcal P'_1
+:
+\\
+&
+\equiv_{(f,f')}\land\equiv_{((\mathcal P_0,\mathcal P_1),
+          (\mathcal P'_0,\mathcal P'_1))}
+\Longrightarrow
+\equiv_{(\mathcal P,\mathcal P')}
+\end{aligned}
+}
+\]
+
+\[
+\text{\rm (Select-L)}
+\quad{
+\begin{aligned}
+\Gamma
+\vdash\;&
+(\mathcal P_0,\mathcal P_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P
+\sim
+\mathbf{skip}
+:
+\equiv_{(\mathcal P^f,\mathcal U')}
+\Longrightarrow
+\equiv_{((\mathcal P_0,\mathcal P_1),\mathcal U')}.
+\end{aligned}
+}
+\]
+
+\[
+\text{\rm (Merge-L)}
+\quad
+{
+\begin{aligned}
+\Gamma
+\vdash\;&
+\mathcal P
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P_0,\mathcal P_1
+\sim
+\mathbf{skip}
+:
+\equiv_{((\mathcal P_0,\mathcal P_1)^{\uparrow f},\mathcal U')}
+\Longrightarrow
+\equiv_{(\mathcal P,\mathcal U')}.
+\end{aligned}
+}
+\]
+
+\[
+\text{\rm (Sift)}
+\quad
+\frac{
+\begin{array}{c}
+\Gamma
+\vdash
+D_f[\mathcal P_{\mathsf{pre}}]
+\cong
+D'_{f'}[\mathcal P'_{\mathsf{post}}]
+\\[0.6ex]
+\Gamma
+\vDash
+C_{\operatorname{tgt}_{D_f}}
+\sim_{\mathsf{fiber}}
+C_{\operatorname{src}_{D'_{f'}}}
+:
+\equiv_{
+\left(
+\operatorname{tgt}_{D_f}(\mathcal V_{\mathsf{pre}}),
+\operatorname{src}_{D'_{f'}}(\mathcal V'_{\mathsf{pre}})
+\right)
+}
+\Longrightarrow
+\equiv_{
+\left(
+\operatorname{tgt}_{D_f}(\mathcal V_{\mathsf{post}}),
+\operatorname{src}_{D'_{f'}}(\mathcal V'_{\mathsf{post}})
+\right)
+}
+\end{array}
+}{
+\begin{aligned}
+\Gamma
+\vdash\;&
+D_f[\mathcal P_{\mathsf{pre}}];
+C_{\operatorname{tgt}_{D_f}}
+\sim
+C_{\operatorname{src}_{D'_{f'}}};
+D'_{f'}[\mathcal P'_{\mathsf{post}}]:
+\equiv_{(f,f')}
+\land
+\equiv_{
+\left(
+\operatorname{src}_{D_f}(\mathcal V_{\mathsf{pre}}),
+\operatorname{src}_{D'_{f'}}(\mathcal V'_{\mathsf{pre}})
+\right)
+}
+\Longrightarrow
+\equiv_{
+\left(
+\operatorname{tgt}_{D_f}(\mathcal V_{\mathsf{post}}),
+\operatorname{tgt}_{D'_{f'}}(\mathcal V'_{\mathsf{post}})
+\right)
+}.
+\end{aligned}
+}
+\]
+
+
+
+\paragraph{Certified fiber instances.}
+
+For basis readout with matching descriptors:
+\[
+\Gamma
+\vDash
+\mathsf{Read}_{b}^{E}(x;\bar q)
+\sim_{\mathsf{fiber}}
+\mathsf{Read}_{b'}^{E}(x';\bar q')
+:
+\equiv_{((b,\bar q),(b',\bar q'))}
+\Longrightarrow
+\equiv_{((b,x),(b',x'))}.
+\]
+
+For split-vs-unsplit basis readout, where
+\(m_0=\operatorname{wt}_{E}(\neg f)\) and
+\(m_1=\operatorname{wt}_{E}(f)\):
+\[
+\Gamma
+\vDash
+\mathsf{Read}_{b_0}^{m_0}(x_0;\bar q_0);
+\mathsf{Read}_{b_1}^{m_1}(x_1;\bar q_1)
+\sim_{\mathsf{fiber}}
+\mathsf{Read}_{b'}^{E}(x';\bar q')
+:
+\equiv_{(((b_0,\bar q_0),(b_1,\bar q_1)),(b',\bar q'))}
+\Longrightarrow
+\equiv_{(((b_0,x_0),(b_1,x_1)),(b',x'))}.
+\]
+
+For computational-basis bit preparation with matching descriptors:
+\[
+\Gamma
+\vDash
+\mathsf{PrepBits}^{E}(a;\bar q)
+\sim_{\mathsf{fiber}}
+\mathsf{PrepBits}^{E}(a';\bar q')
+:
+\equiv_{(a,a')}
+\Longrightarrow
+\equiv_{((a,\bar q),(a',\bar q'))}.
+\]
+
+For split-vs-unsplit computational-basis bit preparation:
+\[
+\Gamma
+\vDash
+\mathsf{PrepBits}^{E}(a;\bar q)
+\sim_{\mathsf{fiber}}
+\mathsf{PrepBits}^{m_0}(a'_0;\bar q'_0);
+\mathsf{PrepBits}^{m_1}(a'_1;\bar q'_1)
+:
+\equiv_{(a,(a'_0,a'_1))}
+\Longrightarrow
+\equiv_{((a,\bar q),((a'_0,\bar q'_0),(a'_1,\bar q'_1)))}.
+\]
+
+For basis-indexed bit preparation with matching descriptors:
+\[
+\Gamma
+\vDash
+\mathsf{PrepBits}^{E}_{b}(a;\bar q)
+\sim_{\mathsf{fiber}}
+\mathsf{PrepBits}^{E}_{b'}(a';\bar q')
+:
+\equiv_{((a,b),(a',b'))}
+\Longrightarrow
+\equiv_{((a,b,\bar q),(a',b',\bar q'))}.
+\]
+
+For split-vs-unsplit basis-indexed bit preparation:
+\[
+\Gamma
+\vDash
+\mathsf{PrepBits}^{E}_{b}(a;\bar q)
+\sim_{\mathsf{fiber}}
+\mathsf{PrepBits}^{m_0}_{b'_0}(a'_0;\bar q'_0);
+\mathsf{PrepBits}^{m_1}_{b'_1}(a'_1;\bar q'_1)
+:
+\equiv_{((a,b),((a'_0,b'_0),(a'_1,b'_1)))}
+\Longrightarrow
+\equiv_{
+((a,b,\bar q),((a'_0,b'_0,\bar q'_0),(a'_1,b'_1,\bar q'_1)))
+}.
+\]
+
+\paragraph{Derived sift-measure instance.}
+
+Let
+\[
+m_c=\operatorname{wt}_{J}(\neg f),
+\qquad
+m_k=\operatorname{wt}_{J}(f).
+\]
+Taking
+\[
+D_f[\mathcal P_{\mathsf{pre}}]
+=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ b,\bar q,
+\qquad
+D'_{f'}[\mathcal P'_{\mathsf{post}}]
+=
+\mathbf{select}_{f'}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ b',x',
+\]
+\[
+\mathcal V_{\mathsf{pre}}=(b,\bar q),
+\qquad
+\mathcal V_{\mathsf{post}}=(b,x),
+\]
+gives:
+\[
+\begin{aligned}
+\Gamma
+\vdash\;&
+(b_c,\bar q_c),(b_k,\bar q_k)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ b,\bar q;
+\\
+&
+\mathsf{Read}_{b_c}^{m_c}(x_c;\bar q_c);
+\mathsf{Read}_{b_k}^{m_k}(x_k;\bar q_k)
+\\
+&\sim
+\mathsf{Read}_{b'}^{J}(x';\bar q');
+\\
+&
+(b'_c,x'_c),(b'_k,x'_k)
+:=
+\mathbf{select}_{f'}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ b',x'
+\\
+&:
+\equiv_{(f,f')}
+\land
+\equiv_{(b,b')}
+\land
+\equiv_{(\bar q,\bar q')}
+\\
+&\Longrightarrow
+\equiv_{\bigl(
+(b_c,x_c,b_k,x_k),
+(b'_c,x'_c,b'_k,x'_k)
+\bigr)} .
+\end{aligned}
+\]
+
+
+\paragraph{Derived sift-prepare instance.}
+
+Let
+\[
+m_c=\operatorname{wt}_{J}(\neg f),
+\qquad
+m_k=\operatorname{wt}_{J}(f).
+\]
+
+For computational-basis preparation, taking
+\[
+D_f[\mathcal P_{\mathsf{pre}}]
+=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\ (a_c,\bar q_c),(a_k,\bar q_k),
+\]
+\[
+D'_{f'}[\mathcal P'_{\mathsf{post}}]
+=
+\mathbf{merge}_{f'}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\ (a'_c,\bar q'_c),(a'_k,\bar q'_k),
+\]
+\[
+\mathcal V_{\mathsf{pre}}=a,
+\qquad
+\mathcal V_{\mathsf{post}}=(a,\bar q),
+\]
+gives:
+\[
+\begin{aligned}
+\Gamma
+\vdash\;&
+(a,\bar q)
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\ (a_c,\bar q_c),(a_k,\bar q_k);
+\\
+&
+\mathsf{PrepBits}^{J}(a;\bar q)
+\\
+&\sim
+\mathsf{PrepBits}^{m_c}(a'_c;\bar q'_c);
+\mathsf{PrepBits}^{m_k}(a'_k;\bar q'_k);
+\\
+&
+(a',\bar q')
+:=
+\mathbf{merge}_{f'}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\ (a'_c,\bar q'_c),(a'_k,\bar q'_k)
+\\
+&:
+\equiv_{(f,f')}
+\land
+\equiv_{(a_c,a'_c)}
+\land
+\equiv_{(a_k,a'_k)}
+\\
+&\Longrightarrow
+\equiv_{(a,a')}
+\land
+\equiv_{(\bar q,\bar q')} .
+\end{aligned}
+\]
+
+For basis-indexed preparation, taking
+\[
+D_f[\mathcal P_{\mathsf{pre}}]
+=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\
+(a_c,b_c,\bar q_c),(a_k,b_k,\bar q_k),
+\]
+\[
+D'_{f'}[\mathcal P'_{\mathsf{post}}]
+=
+\mathbf{merge}_{f'}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\
+(a'_c,b'_c,\bar q'_c),(a'_k,b'_k,\bar q'_k),
+\]
+\[
+\mathcal V_{\mathsf{pre}}=(a,b),
+\qquad
+\mathcal V_{\mathsf{post}}=(a,b,\bar q),
+\]
+gives:
+\[
+\begin{aligned}
+\Gamma
+\vdash\;&
+(a,b,\bar q)
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\ (a_c,b_c,\bar q_c),(a_k,b_k,\bar q_k);
+\\
+&
+\mathsf{PrepBits}^{J}_{b}(a;\bar q)
+\\
+&\sim
+\mathsf{PrepBits}^{m_c}_{b'_c}(a'_c;\bar q'_c);
+\mathsf{PrepBits}^{m_k}_{b'_k}(a'_k;\bar q'_k);
+\\
+&
+(a',b',\bar q')
+:=
+\mathbf{merge}_{f'}^{N}\ \mathbf{from}\ J\
+\mathbf{for}\ (a'_c,b'_c,\bar q'_c),(a'_k,b'_k,\bar q'_k)
+\\
+&:
+\equiv_{(f,f')}
+\land
+\equiv_{((a_c,b_c),(a'_c,b'_c))}
+\land
+\equiv_{((a_k,b_k),(a'_k,b'_k))}
+\\
+&\Longrightarrow
+\equiv_{(a,a')}
+\land
+\equiv_{(b,b')}
+\land
+\equiv_{(\bar q,\bar q')} .
+\end{aligned}
+\]
+
+
+\section{Syntax Sugar}
+\label{app:syntax-sugar}
+
+\begin{itemize}
+
+    \item \textbf{Initialization of quantum variables:}
+    \[
+    \bar q[i]:=|1\rangle\stackrel{\triangle}{=}
+    \bar q[i]:=|0\rangle;\ \bar q[i]\asteq X;
+    \]
+    
+    \[
+    \overline{q} := \ket{0}^{\otimes n}
+    \stackrel{\triangle}{=}
+    \bar{q}[1] := \ket{0};\ \cdots;\ \bar{q}[n] := \ket{0};\]
+
+    \[
+    \overline{q} := \ket{1}^{\otimes n}
+    \stackrel{\triangle}{=}
+    \bar{q}[1] := \ket{1};\ \cdots;\ \bar{q}[n] := \ket{1}.\]
+
+    \item {\textbf{Dummy channel-order syntax sugar.}}
+    
+    {Private auxiliary channel-side systems must already belong
+    to the fixed channel/adversarial workspace used with}
+    \[
+    {
+    U_{\textbf{channel}}.
+    }
+    \]
+    {They are ordinary systems outside the retained terminal QKD
+    observation.}
+    
+    \item \textbf{Measurement in the computational basis:}
+    For a qubit register
+    \(\bar q=(\bar q[1],\ldots,\bar q[n])\)
+    and a bit-valued classical register
+    \(x=(x[1],\ldots,x[n])\), we write
+    \[
+    x[1,\ldots,n]
+    :=
+    \mathcal M_{\mathrm{com}}[\bar q[1,\ldots,n]]\]
+    as syntactic sugar for
+    \(x[1]:=\mathcal M_{\mathrm{com}}[\bar q[1]];
+    \ \cdots;\
+    x[n]:=\mathcal M_{\mathrm{com}}[\bar q[n]],\)
+    where the single-qubit computational-basis measurement is
+    \(\mathcal M_{\mathrm{com}}
+    \stackrel{\triangle}{=}
+    \{\ket 0\bra 0,\ket 1\bra 1\}.\)
+
+    \item \(\mathsf{Read}_{b}^{E}(x;\bar q)\):
+    For a bit-valued basis view \(b\), a bit-valued output view \(x\), and a
+    quantum view \(\bar q\), define
+    \[
+    \mathsf{Read}_{b}^{E}(x;\bar q)
+    \]
+    as syntax sugar for
+    \[
+    \mathbf{for}^{E}\ i=1\ \mathbf{to}\ E
+    \quad
+    \mathbf{if}\ b[i]=0
+    \rightarrow
+    x[i]:=\mathcal M_{\mathrm{com}}[\bar q[i]],
+    \]
+    \[
+    \hspace{27mm}
+    \mathbf{else}
+    \rightarrow
+    x[i]:=\mathcal M_{\{+,-\}}[\bar q[i]]
+    \quad
+    \mathbf{end}.
+    \]
+    It is a descriptor-preserving register operation.
+
+    \item \(\mathsf{PrepBits}^{E}(a;\bar q)\) and
+    \(\mathsf{PrepBits}^{E}_{b}(a;\bar q)\):
+
+    For a bit-valued input view \(a\), a bit-valued basis view \(b\), and a
+    quantum view \(\bar q\), define basis-indexed preparation
+    \[
+    \mathsf{PrepBits}^{E}_{b}(a;\bar q)
+    \]
+    as syntax sugar for
+    \[
+    \mathbf{for}^{E}\ i=1\ \mathbf{to}\ E
+    \quad
+    \mathbf{if}\ b[i]=0
+    \rightarrow S_0(i),
+    \quad
+    \mathbf{else}
+    \rightarrow S_1(i)
+    \quad
+    \mathbf{end},
+    \]
+    where
+    \[
+    S_0(i)
+    \stackrel{\triangle}{=}
+    \mathbf{if}\ a[i]=0
+    \rightarrow
+    \bar q[i]:=\ket0,
+    \quad
+    \mathbf{else}
+    \rightarrow
+    \bar q[i]:=\ket1,
+    \]
+    and
+    \[
+    S_1(i)
+    \stackrel{\triangle}{=}
+    \mathbf{if}\ a[i]=0
+    \rightarrow
+    \bar q[i]:=\ket+,
+    \quad
+    \mathbf{else}
+    \rightarrow
+    \bar q[i]:=\ket- .
+    \]
+
+    Omitting the basis subscript means computational-basis preparation:
+    \[
+    \mathsf{PrepBits}^{E}(a;\bar q)
+    \stackrel{\triangle}{=}
+    \mathsf{PrepBits}^{E}_{\mathbf 0_E}(a;\bar q),
+    \]
+    where
+    \[
+    \mathbf 0_E[i]=0
+    \qquad
+    (1\le i\le E).
+    \]
+
+    Thus
+    \[
+    \mathsf{PrepBits}^{E}(a;\bar q)
+    \]
+    expands to
+    \[
+    \mathbf{for}^{E}\ i=1\ \mathbf{to}\ E
+    \quad
+    \mathbf{if}\ a[i]=0
+    \rightarrow
+    \bar q[i]:=\ket0,
+    \quad
+    \mathbf{else}
+    \rightarrow
+    \bar q[i]:=\ket1
+    \quad
+    \mathbf{end}.
+    \]
+
+    Both forms are descriptor-preserving register operations. Their output
+    quantum state is determined by the displayed classical controls and not by
+    the previous state of \(\bar q[i]\).
+
+    \item \textbf{Classically indexed unitary operations on a fixed register:}
+    For a unitary operator \(U\) acting on \(k\) qubits, we write
+    \(\bar q[i_1,\ldots,i_k]\asteq U\)
+    for applying \(U\) to ordered variables
+    \(\bar q[i_1],\ldots,\bar q[i_k]\); \(k=1\) is primitive.
+    Let \(U\stackrel{\triangle}{=}(U_i)_{1\le i\le K}\) be a finite family
+    of unitary operators on the Hilbert space associated with \(\bar q\),
+    with \(K\ge 1\), and let \(e\) be an \(\mathsf{Int}\)-typed expression.
+    We write
+    \[
+    \bar q\asteq U(e)
+    \]
+    for the finite case expansion
+    \[
+    \textbf{if } e<1\lor e>K \rightarrow \textbf{abort},
+    \ \textbf{else}\rightarrow S_1;\cdots;S_K,
+    \]
+    where, for each \(1\le i\le K\),
+    \[
+    S_i
+    \stackrel{\triangle}{=}
+    \textbf{if } e=i \rightarrow \bar q\asteq U_i,
+    \ \textbf{else}\rightarrow\mathbf{skip}.
+    \]
+    Since \(S_i\) does not change \(e\), exactly one valid branch applies
+    \(U_i\); out-of-range aborts.
+
+    \item \textbf{Unitary operations on selected qubits:}
+    Let \(1\le k\le n\), and let \(e,e_1,\ldots,e_k\) be
+    \(\mathsf{Int}\)-typed expressions. The statement
+    \[
+    \bar q[e_1,\ldots,e_k]\asteq U(e),
+    \]
+    where \(U=(U_i)_{1\le i\le K}\) is as in the previous clause and each
+    \(U_i\) acts on \(k\) qubits, applies \(U_i\) on the quantum systems
+    \(\bar q[i_1],\ldots,\bar q[i_k]\) whenever \(e\) evaluates to \(i\)
+    and each \(e_j\) evaluates to a distinct valid \(i_j\). The guard
+    \[
+    \exists\,1\le r\le k.\,(e_r<1\lor e_r>n)
+    \ \lor\
+    \exists\,1\le r<s\le k.\,(e_r=e_s)
+    \]
+    abbreviates the corresponding finite predicate. The statement denotes
+    \[
+    \textbf{if } B_{\mathrm{bad}}\rightarrow \textbf{abort},
+    \ \textbf{else}\rightarrow S_1;S_2;\cdots;S_{|R|},
+    \]
+    where
+    \(B_{\mathrm{bad}}
+    \stackrel{\triangle}{=}
+    \bigvee_{r=1}^{k}(e_r<1\lor e_r>n)
+    \ \lor\
+    \bigvee_{1\le r<s\le k}(e_r=e_s),\)
+    and
+    \(R
+    \stackrel{\triangle}{=}
+    \{(i_1,\ldots,i_k):
+    1\le i_j\le n\ \text{ for all }j,\ \text{and }i_1,\ldots,i_k
+    \text{ are distinct}\}.\)
+    Fix an enumeration
+    \[
+    R=\{(i_1^\ell,\ldots,i_k^\ell):1\le \ell\le |R|\}.
+    \]
+    For each \(1\le \ell\le |R|\), define
+    \[
+    S_\ell
+    \stackrel{\triangle}{=}
+    \textbf{if }e_1=i_1^\ell\land\cdots\land e_k=i_k^\ell
+    \rightarrow
+    \bar q[i_1^\ell,\ldots,i_k^\ell]\asteq U(e),
+    \ \textbf{else}\rightarrow\mathbf{skip}.
+    \]
+
+    \item \textbf{Preparation and measurement in the \(\{+,-\}\) basis:}
+    For one qubit:
+    \begin{align*}
+        \bar q[i] := \ket{+}
+        &\stackrel{\triangle}{=}
+        \bar q[i] := \ket{0};\ \bar q[i]\asteq H,\\
+        \bar q[i] := \ket{-}
+        &\stackrel{\triangle}{=}
+        \bar q[i] := \ket{0};\ \bar q[i]\asteq X;\ \bar q[i]\asteq H,\\
+        c[t] := \mathcal M_{\{+,-\}}[\bar q[i]]
+        &\stackrel{\triangle}{=}
+        \bar q[i]\asteq H;\ c[t]:=\mathcal M_{\mathrm{com}}[\bar q[i]].
+    \end{align*}
+
+    \item \textbf{Boolean XOR notation:}
+    For bit-valued expressions \(E_1,E_2\), we may use
+    \[
+    E_1\oplus E_2=0
+    \quad\stackrel{\triangle}{=}\quad
+    E_1=E_2,
+    \qquad\text{and}\qquad
+    E_1\oplus E_2=1
+    \quad\stackrel{\triangle}{=}\quad
+    E_1\neq E_2.
+    \]
+    Assignment notation
+    \[
+    x[t] := E_1\oplus E_2
+    \]
+    as syntactic sugar for
+    \[
+    \textbf{if } E_1=E_2 \rightarrow x[t]:=0,
+    \ \textbf{else}\rightarrow x[t]:=1.
+    \]
+
+    \item \textbf{Fixed finite classical-map syntax sugars.}
+
+    Let
+    \[
+    F:D_1\times\cdots\times D_s\to D
+    \]
+    be a fixed external classical map over finite protocol domains. The command
+    \[
+    y:=F(x_1,\ldots,x_s)
+    \]
+    is finite case analysis over \(D_1\times\cdots\times D_s\), using only
+    conditionals and constant assignments. For each tuple
+    \[
+    d=(d_1,\ldots,d_s)\in D_1\times\cdots\times D_s,
+    \]
+    let
+    \[
+    c_d=F(d_1,\ldots,d_s).
+    \]
+    Then \(y:=F(x_1,\ldots,x_s)\) expands into the finite sequence of guarded
+    assignments
+    \[
+    \prod_{d\in D_1\times\cdots\times D_s}
+    \left(
+    \mathbf{if}\ x_1=d_1\land\cdots\land x_s=d_s
+    \rightarrow y:=c_d,
+    \ \mathbf{else}\rightarrow\mathbf{skip}
+    \right),
+    \]
+    for any fixed enumeration of the finite domain.
+
+    Vector-valued fixed maps are expanded componentwise. Thus commands such as
+    \[
+    k_b:=\mathsf{qecBob}(k',x-\nu_k),
+    \qquad
+    k_a:=\mathsf{qecAlice}(k,x-\nu_k),
+    \qquad
+    \hat e_X:=D_X(s_Z),
+    \qquad
+    \hat e_Z:=D_Z(s_X)
+    \]
+    are finite classical-map syntax sugars, not primitives.
+
+    \item \textbf{CNOT gate:}
+    For \(k\ge 1\), we write
+    \(\bar q[e_1,\ldots,e_k,e_{k+1},\ldots,e_{2k}]\asteq \mathrm{CNOT}\)
+    for the parallel application of \(k\) CNOT gates, where \(\bar q[e_j]\)
+    is the control and \(\bar q[e_{k+j}]\) is the target of the \(j\)-th CNOT
+    gate:
+    \[
+    \bar q[e_1,\ldots,e_k,e_{k+1},\ldots,e_{2k}]\asteq \mathrm{CNOT}
+    \stackrel{\triangle}{=}
+    \bar q[e_1,e_{k+1},e_2,e_{k+2},\ldots,e_k,e_{2k}]
+    \asteq \mathrm{CNOT}^{\otimes k}.
+    \]
+    Range and distinctness come from selected-qubit unitary sugar. If
+    \(\bar q=(\bar q[1],\bar q[2])\) is a two-qubit register, then
+    \(\bar q\asteq \mathrm{CNOT}
+    \quad\text{stands for}\quad
+    \bar q[1,2]\asteq \mathrm{CNOT},\)
+    with \(\bar q[1]\) as control and \(\bar q[2]\) as target.
+
+    \item \textbf{Pauli-parity and CSS-syndrome measurement.}
+    
+    Matrices here are fixed external data, not sampled program variables.
+    
+    Let \(h=(h_1,\ldots,h_N)\in\{0,1\}^{N}\) be a fixed binary protocol vector.
+    Define
+    \[
+    \operatorname{supp}(h)
+    \stackrel{\triangle}{=}
+    \{t: h_t=1\}.
+    \]
+    For a quantum block
+    \[
+    \bar r=(\bar r[1],\ldots,\bar r[N]),
+    \]
+    define
+    \[
+    Z(h)\stackrel{\triangle}{=}\bigotimes_{t=1}^{N}Z_t^{h_t},
+    \qquad
+    X(h)\stackrel{\triangle}{=}\bigotimes_{t=1}^{N}X_t^{h_t}.
+    \]
+    The syndrome bit convention is
+    \[
+    0\equiv +1\text{ eigenvalue},
+    \qquad
+    1\equiv -1\text{ eigenvalue}.
+    \]
+    
+    For logical quantum views \(u,v\), write
+    \[
+    \operatorname{CNOT}_{u\rightarrow v}
+    \]
+    for the selected-qubit CNOT update with ordinary liveness, disjointness,
+    and dimension obligations.
+    
+    If
+    \[
+    \operatorname{supp}(h)=\{t_1<\cdots<t_w\},
+    \]
+    then the \(Z(h)\)-parity measurement
+    \[
+    s:=\mathsf{MeasZCheck}_{h}(\bar r;a)
+    \]
+    is syntactic sugar for
+    \[
+    a:=\ket0;
+    \quad
+    \operatorname{CNOT}_{\bar r[t_1]\rightarrow a};
+    \quad\cdots\quad;
+    \operatorname{CNOT}_{\bar r[t_w]\rightarrow a};
+    \quad
+    s:=\mathcal M_{\mathrm{com}}[a].
+    \]
+    If \(w=0\), the CNOT sequence is empty and the measurement deterministically
+    returns \(s=0\).
+    
+    The \(X(h)\)-parity measurement
+    \[
+    s:=\mathsf{MeasXCheck}_{h}(\bar r;a)
+    \]
+    is syntactic sugar for
+    \[
+    a:=\ket0;
+    \quad
+    a\asteq H;
+    \quad
+    \operatorname{CNOT}_{a\rightarrow \bar r[t_1]};
+    \quad\cdots\quad;
+    \operatorname{CNOT}_{a\rightarrow \bar r[t_w]};
+    \quad
+    a\asteq H;
+    \quad
+    s:=\mathcal M_{\mathrm{com}}[a].
+    \]
+    If \(w=0\), the CNOT sequence is empty and the measurement deterministically
+    returns \(s=0\).
+    
+    These expand to initialization, Hadamard, CNOT, sequencing, and binary
+    measurement before denotation.
+    
+    Let
+    \[
+    H_Z\in\{0,1\}^{r_Z\times N},
+    \qquad
+    H_X\in\{0,1\}^{r_X\times N}
+    \]
+    be fixed external CSS parity-check matrices satisfying
+    \[
+    H_XH_Z^{\mathsf T}=0
+    \quad\text{over }\mathbb F_2.
+    \]
+    Write \(h^Z_u\) for the \(u\)-th row of \(H_Z\), and \(h^X_v\) for the
+    \(v\)-th row of \(H_X\).
+    
+    For syndrome output registers
+    \[
+    s_Z[1,\ldots,r_Z],
+    \qquad
+    s_X[1,\ldots,r_X],
+    \]
+    and ancilla blocks
+    \[
+    a_Z[1,\ldots,r_Z],
+    \qquad
+    a_X[1,\ldots,r_X],
+    \]
+    define
+    \[
+    (s_Z,s_X):=
+    \mathsf{CSSSyn}_{H_Z,H_X}(\bar r;a_Z,a_X)
+    \]
+    as syntactic sugar for
+    \[
+    \mathbf{for}^{r_Z}\ u=1\ \mathbf{to}\ r_Z
+    \quad
+    s_Z[u]:=\mathsf{MeasZCheck}_{h^Z_u}(\bar r;a_Z[u])
+    \quad
+    \mathbf{end};
+    \]
+    \[
+    \mathbf{for}^{r_X}\ v=1\ \mathbf{to}\ r_X
+    \quad
+    s_X[v]:=\mathsf{MeasXCheck}_{h^X_v}(\bar r;a_X[v])
+    \quad
+    \mathbf{end}.
+    \]
+    
+    Obligations: \(\bar r,a_Z,a_X\) are live quantum views; ancillas are
+    pairwise disjoint and disjoint from \(\bar r\); \(s_Z,s_X\) are live bits.
+    \(H_XH_Z^{\mathsf T}=0\) is needed for joint-syndrome projectors, not for
+    parsing.
+
+    \item \textbf{Finite for-loop notation.}
+
+    For any fixed protocol length \(M\) and any statement schema \(S(i)\), we
+    write
+    \[
+    \mathbf{for}^{M}\ i=1\ \mathbf{to}\ M
+    \quad S(i)
+    \quad \mathbf{end}
+    \]
+    as the finite expansion
+    \[
+    S(1);S(2);\cdots;S(M).
+    \]
+    This is fixed finite sequencing; it is not a while-loop.
+    
+    \item \textbf{CSS-QEC syntax sugar.}
+
+    The abbreviation
+    \[
+    \bar u:=QEC(\bar r)
+    \]
+    abbreviates CSS correction sugar:
+    syndrome measurement, decoder lookups, indexed Pauli corrections, and CSS
+    decoding.
+
+    \item \(\mathbf{rand}(n,\varphi)\) and \(\mathbf{rand}(n)\):
+    
+    The primitive random command is
+    \[
+    p:=_{\$}\mathbf{rand}(n,\varphi),
+    \]
+    where \(\varphi\) is a filter expression satisfying
+    \[
+    \llbracket\varphi\rrbracket_{\xi}\in\{0,1\}^{n}
+    \]
+    on well-formed branches.
+    
+    Its one-program denotation uniformly initializes the register payloads
+    \[
+    p[1],\ldots,p[n].
+    \]
+    The filter expression \(\varphi\) is descriptor data. It is used by relational
+    rules to certify that the two samplings are aligned under the same local view
+    index. It does not change the one-program randomization denotation.
+    
+    The notation
+    \[
+    p:=_{\$}\mathbf{rand}(n)
+    \]
+    is syntactic sugar for
+    \[
+    p:=_{\$}\mathbf{rand}(n,\mathbf 1_n),
+    \]
+    where \(\mathbf 1_n\) is the deterministic all-one filter of length \(n\).
+    
+    
+    \item \(\mathbf{select}_{f}\):
+    
+    Let \(g\) be an indexed logical descriptor view, and let \(g_0,g_1\) be
+    logical lists with
+    \[
+    \operatorname{sort}(g_0)=\operatorname{sort}(g_1)=\operatorname{sort}(g).
+    \]
+    Let \(f\) be a bit-valued filter descriptor.  The command
+    \[
+    (g_0,g_1)
+    :=
+    \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
+    \]
+    is well formed only when \(J\) is the whole current length of \(g\):
+    \[
+    J=\mathbf{length}(g)
+    \]
+    or \(J=N\) with
+    \[
+    N=\mathbf{length}(g).
+    \]
+    
+    It defines \(g_0\) as the \(f=0\) subview of \(g\), and \(g_1\) as the
+    \(f=1\) subview of \(g\), preserving relative order in each fiber.
+    
+    The package notation
+    \[
+    (\mathcal P_0,\mathcal P_1)
+    :=
+    \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P
+    \]
+    is componentwise.
+    
+    \(\mathbf{select}_{f}\) constructs descriptor views, not value/state copies.
+
+    \item \(\mathbf{merge}_{f}\):
+    
+    Let \(g\) be a target descriptor view, let \(g_0,g_1\) be source views, and let
+    \(f\) be a bit-valued filter descriptor.  The command
+    \[
+    g
+    :=
+    \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1
+    \]
+    is well formed only when \(J\) is the whole merged length:
+    \[
+    J=\mathbf{length}(g_0)+\mathbf{length}(g_1)
+    \]
+    or \(J=N\) with
+    \[
+    N=\mathbf{length}(g_0)+\mathbf{length}(g_1).
+    \]
+    
+    It interleaves \(g_0,g_1\) according to \(f\), preserving source order.
+    
+    The package notation
+    \[
+    \mathcal P
+    :=
+    \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P_0,\mathcal P_1
+    \]
+    is componentwise.
+    
+    \(\mathbf{merge}_{f}\) constructs descriptor views, not value/state copies.
+
+
+
+    \item {\textbf{Bit-order send syntax sugar.}}
+    
+    {A channel attack is one fixed joint unitary}
+    \[
+    {
+    U_{\textbf{channel}},
+    }
+    \]
+    {shared by compared games. The only send sugar is}
+    \[
+    {
+    \mathbf{send}_{\mathsf{bit}}(\vec u),
+    \qquad
+    \vec u=(u_1,\ldots,u_M),
+    }
+    \]
+    {where \(u_1,\ldots,u_M\) is the displayed bit-order tuple.
+    It expands to}
+    \[
+    {
+    \mathbf{send}_{\mathsf{bit}}(u_1,\ldots,u_M)
+    \stackrel{\triangle}{=}
+    \bigl((u_1,\ldots,u_M),\bar q_{\mathbf{ch}}\bigr)
+    \asteq
+    U_{\textbf{channel}} .
+    }
+    \]
+    
+    {\(\bar q_{\mathbf{ch}}\) is the fixed channel/adversarial
+    workspace. Obligations: \(u_1,\ldots,u_M\) are live, pairwise disjoint,
+    dimension-compatible, and disjoint from that workspace.}
+    
+    {The displayed order is the expansion order.
+    \(U_{\textbf{channel}}\) may entangle all transmitted systems with the
+    workspace; it is not assumed product or decomposed.}
+    
+    {This sugar does not read/branch on filters, define a family
+    of adversarial unitaries, or use dummy padding. If the tuple was selected,
+    selection has already been represented by descriptor construction.}
+    
+    \item \textbf{publish:}
+
+    For transcript \(L\) and classical/probability
+    \(p=(p[1],\ldots,p[n])\), define
+    \[
+    \mathbf{publish: }p
+    \]
+    as value-copy publication:
+    \[
+    \textbf{for } i=1 \textbf{ to } i=n
+    \quad
+    L[\mathbf{next}] :=_{\mathsf{pub}} p[i]
+    \quad
+    \textbf{end}.
+    \]
+    We define the operation
+    \[
+    L[\mathbf{next}] :=_{\mathsf{pub}} p[i]
+    \]
+    to copy \(p[i]\)'s current value into the next reserved transcript cell,
+    without descriptor aliasing or consuming the source.
+
+    \(L\) is public/authenticated: visible but adversary-immutable.
+    Publication is value-copy for classical/probability values only; quantum
+    values cannot be value-copied. The source remains live.
+
+    The displayed command
+    \[
+    \mathbf{publish:}~received
+    \]
+    is deterministic public acknowledgement after the channel command:
+    \[
+    received[1] := 1;\quad
+    L[\mathbf{next}] :=_{\mathsf{pub}} received[1].
+    \]
+    It adds no loss model, availability oracle, or channel semantics;
+    availability loss is represented by explicit later events such as
+    \[
+    \mathsf{sift\mbox{-}fail}.
+    \]
+\end{itemize}
+
+
+
+\end{document}
