@@ -104,221 +104,230 @@
 \subsubsection{Syntax}
 
 \begin{definition}[Variable Names to Address Indexes]
-\[
-\overset{\textbf{Quantum variables}}{\overbrace{
-\bar q \mapsto [1,\ldots,n_q]
-}}
-\qquad
-\overset{\textbf{Probability registers}}{\overbrace{
-p \mapsto [1,\ldots,n_p]
-}}
-\qquad
-\overset{\textbf{Classical registers}}{\overbrace{
-x \mapsto [1,\ldots,n_x]
-}} .
-\]
-
-Addresses are defined as
-\[
-(\mathsf{Quantum}\quad \mathsf{Int})
-\mid
-(\mathsf{Probability}\quad \mathsf{Int})
-\mid
-(\mathsf{Classical}\quad \mathsf{Int}) .
-\]
-
-Descriptor names include
-\[
-f \mapsto [1,\ldots,n_f],
-\qquad
-\iota:\mathsf{Int}.
-\]
-They are not register addresses.
-\end{definition}
+  \[
+  \overset{\textbf{Quantum variables}}{\overbrace{
+  \bar q \mapsto [1,\ldots,n_q]
+  }}
+  \qquad
+  \overset{\textbf{Probability registers}}{\overbrace{
+  p \mapsto [1,\ldots,n_p]
+  }}
+  \qquad
+  \overset{\textbf{Classical registers}}{\overbrace{
+  x \mapsto [1,\ldots,n_x]
+  }} .
+  \]
+  
+  Addresses are defined as
+  \[
+  (\mathsf{Quantum}\quad \mathsf{Int})
+  \mid
+  (\mathsf{Probability}\quad \mathsf{Int})
+  \mid
+  (\mathsf{Classical}\quad \mathsf{Int}) .
+  \]
+  
+  Logical list names are written
+  \[
+  g,h,g_0,g_1,\ldots .
+  \]
+  Each logical list name has a fixed register sort
+  \[
+  \mathsf{Quantum},
+  \qquad
+  \mathsf{Probability},
+  \qquad
+  \text{or}
+  \qquad
+  \mathsf{Classical}.
+  \]
+  A base register variable such as
+  \[
+  \bar q,
+  \qquad
+  p,
+  \qquad
+  x
+  \]
+  is also a logical list name of the corresponding sort, with an initial
+  descriptor view over its declared physical address list.
+  
+  Descriptor names include
+  \[
+  f \mapsto [1,\ldots,n_f],
+  \qquad
+  \iota:\mathsf{Int}.
+  \]
+  They are not register addresses.
+  \end{definition}
 
 
 \begin{definition}[Logical Lists, Length, and Descriptor Views]
-The physical register memories are fixed address-indexed memories. Addresses
-are not created, deleted, copied, or moved by descriptor commands.
-
-A descriptor store \(\xi\) assigns to each logical list name \(g\) a descriptor
-view
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
-\]
-where
-\[
-\ell_g\in\mathbb N
-\]
-and
-\[
-\alpha_g:\{1,\ldots,\ell_g\}\to \mathsf{addresses}.
-\]
-
-A descriptor view is mutable. A descriptor command may overwrite the descriptor
-currently stored under a logical list name. Such an overwrite changes only how
-future logical references are resolved. It does not change the register payload
-stored at any physical address.
-
-A reference \(g[i]\) is well formed at \(\xi\) only when
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g)
-\qquad
-\text{and}
-\qquad
-1\le i\le \ell_g.
-\]
-It resolves to
-\[
-\mathsf{phys}_{\xi}(g[i])=\alpha_g(i).
-\]
-
-For lists,
-\[
-\mathsf{phys}_{\xi}(g[1,\ldots,n])
-=
-(\alpha_g(1),\ldots,\alpha_g(n)),
-\]
-provided
-\[
-n\le \ell_g.
-\]
-
-A branch separates descriptor data from register data:
-\[
-\text{descriptor data: filters, descriptor integers, and descriptor views,}
-\]
-\[
-\text{register data: payload at physical addresses.}
-\]
-Classical values, probability values, and quantum states are register data.
-\end{definition}
+  The physical register memories are fixed address-indexed memories. Descriptor
+  commands do not create, delete, copy, or move physical addresses.
+  
+  A descriptor store \(\xi\) assigns to each logical list name \(g\) a descriptor
+  view
+  \[
+  \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+  \]
+  where
+  \[
+  \ell_g\in\mathbb N,
+  \qquad
+  \alpha_g:\{1,\ldots,\ell_g\}\to \mathsf{addresses}.
+  \]
+  
+  A descriptor command may overwrite the descriptor stored under a logical list
+  name. Such an overwrite changes only how future logical references are
+  resolved.
+  
+  A reference \(g[i]\) is well formed at \(\xi\) only when
+  \[
+  \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g)
+  \qquad
+  \text{and}
+  \qquad
+  1\le i\le \ell_g.
+  \]
+  It resolves to
+  \[
+  \mathsf{phys}_{\xi}(g[i])=\alpha_g(i).
+  \]
+  
+  For lists,
+  \[
+  \mathsf{phys}_{\xi}(g[1,\ldots,n])
+  =
+  (\alpha_g(1),\ldots,\alpha_g(n)),
+  \qquad
+  n\le \ell_g.
+  \]
+  
+  A branch separates descriptor data from register data:
+  \[
+  \text{descriptor data: filters, descriptor integers, and descriptor views,}
+  \]
+  \[
+  \text{register data: payload at physical addresses.}
+  \]
+  \end{definition}
 
 
-\begin{definition}[Static Logical Indices]
-In the core language, every displayed index
-\[
-i,j,t
-\]
-in a logical reference such as
-\[
-g[i],
-\qquad
-x[i],
-\qquad
-\bar q[j]
-\]
-is a fixed positive natural number at the syntax level. It is not a runtime
-integer expression and not a descriptor integer.
-
-Thus a core reference
-\[
-g[i]
-\]
-is well formed at descriptor store \(\xi\) only when
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g)
-\qquad\text{and}\qquad
-1\le i\le \ell_g.
-\]
-
-Expression-indexed selected-qubit notation such as
-\[
-\bar q[e_1,\ldots,e_k]\asteq U(e)
-\]
-is syntax sugar only. It expands into finite case analysis over fixed
-natural-number references before denotation.
-\end{definition}
+  \begin{definition}[Static Logical Indices]
+    In the core language, every displayed index
+    \[
+    i,j,t
+    \]
+    in a logical reference such as
+    \[
+    g[i],
+    \qquad
+    x[i],
+    \qquad
+    \bar q[j]
+    \]
+    is a fixed positive natural number at the syntax level. It is not a runtime
+    integer expression and not a descriptor integer.
+    
+    Expression-indexed selected-qubit notation such as
+    \[
+    \bar q[e_1,\ldots,e_k]\asteq U(e)
+    \]
+    is syntax sugar only. It expands into finite case analysis over fixed
+    natural-number references before denotation.
+    \end{definition}
 
 
-\begin{definition}[Syntax]
-Statements are divided by command mode.
 
-Descriptor commands update descriptor data:
-\[
-D ::=
-f :=_{\$}\mathbf{shuffle}(m)_N
-\mid
-\iota := \mathbf{length}(g)
-\]
-\[
-\mid
-(g_0,g_1)
-:=
-\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
-\mid
-g
-:=
-\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1 .
-\]
+    \begin{definition}[Syntax]
+      Statements are divided by command mode.
+      
+      Descriptor commands update descriptor data:
+      \[
+      D ::=
+      f :=_{\$}\mathbf{shuffle}(m)_N
+      \mid
+      \iota := \mathbf{length}(g)
+      \]
+      \[
+      \mid
+      (g_0,g_1)
+      :=
+      \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
+      \mid
+      g
+      :=
+      \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1 .
+      \]
+      
+      Descriptor integer expressions are
+      \[
+      J ::= N \mid \iota .
+      \]
+      
+      Register commands read or update register payloads after resolving logical
+      references:
+      \begin{align*}
+      R ::=~&
+      \mathbf{skip}
+      \mid
+      \mathbf{abort}
+      \mid
+      x[i] := E
+      \mid
+      p :=_{\$}\mathbf{rand}(n)
+      \mid
+      p :=_{\$} \textit{rand}_{n}(C_m)
+      \\
+      &\mid
+      \bar q[i] := \ket{0}
+      \mid
+      \bar q[i] \asteq U
+      \mid
+      x[i] := \mathcal{M}[\bar q[j]]
+      \mid
+      R_0;R_1
+      \\
+      &\mid
+      \mathbf{if}\ B \rightarrow R_0,\ \mathbf{else}\rightarrow R_1 .
+      \end{align*}
+       
+      Programs are generated by
+      \[
+      S ::=
+      D
+      \mid R
+      \mid S_0;S_1 .
+      \]
+      
+      A command
+      \[
+      f:=_{\$}\mathbf{shuffle}(m)_N
+      \]
+      samples a filter of length \(N\) with exactly \(m\) one-bits.
+      
+      A command
+      \[
+      \iota:=\mathbf{length}(g)
+      \]
+      stores the current descriptor length of \(g\).
+      
+      The commands
+      \[
+      (g_0,g_1)
+      :=
+      \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
+      \]
+      and
+      \[
+      g
+      :=
+      \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1
+      \]
+      update descriptor views only.
+      \end{definition}
 
-Descriptor integer expressions are
-\[
-J ::= N \mid \iota .
-\]
-
-Register commands read or update register payloads after resolving logical
-references:
-\begin{align*}
-R ::=~&
-\mathbf{skip}
-\mid
-\mathbf{abort}
-\mid
-x[i] := E
-\mid
-z :=_{\$}\mathbf{rand}(n,\varphi)
-\mid
-z :=_{\$} \textit{rand}_{n}(C_m)
-\\
-&\mid
-\bar q[i] := \ket{0}
-\mid
-\bar q[i] \asteq U
-\mid
-x[i] := \mathcal{M}[\bar q[j]]
-\mid
-R_0;R_1
-\\
-&\mid
-\mathbf{if}\ B \rightarrow R_0,\ \mathbf{else}\rightarrow R_1 .
-\end{align*}
-Here \(z\) ranges over bit-valued probability register views.
-
-Programs are generated by
-\[
-S ::=
-D
-\mid R
-\mid S_0;S_1 .
-\]
-
-A command
-\[
-f:=_{\$}\mathbf{shuffle}(m)_N
-\]
-samples a filter of length \(N\) with exactly \(m\) one-bits.
-
-A command
-\[
-\iota:=\mathbf{length}(g)
-\]
-stores the current descriptor length of \(g\).
-
-The commands
-\[
-(g_0,g_1)
-:=
-\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
-\]
-and
-\[
-g
-:=
-\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1
-\]
-update descriptor views only.
-\end{definition}
 
 \begin{definition}[Classical Expressions and Predicates]
 Use classical types
@@ -354,330 +363,343 @@ as standard abbreviations.
 \subsubsection{\textbf{Semantics}}
 
 \begin{definition}[Descriptor Stores and Register States]
-A descriptor store \(\xi\) maps filter names to finite bitstrings, descriptor
-integer names to integers, and logical list names to descriptor views.
+  A descriptor store \(\xi\) maps filter names to finite bitstrings, descriptor
+  integer names to integers, and logical list names to descriptor views.
+  
+  For filter descriptors, write
+  \[
+  \mathsf{BitList}(N)
+  =
+  \{0,1\}^{N},
+  \qquad
+  \mathsf{Filt}(m,N)
+  =
+  \{F\in\{0,1\}^{N}:\operatorname{wt}(F)=m\}.
+  \]
+  
+  Let
+  \[
+  \mathcal H_{\mathsf D}
+  =
+  \operatorname{span}\{\ket{\xi}:\xi\text{ is a descriptor store}\}
+  \]
+  be the classical descriptor space, and let
+  \[
+  \mathcal H_{\mathsf R}
+  \]
+  be the physical register memory.
+  
+  A descriptor-register c-q state is a positive sub-normalized operator
+  \[
+  \Delta
+  \in
+  \operatorname{Pos}_{\le 1}
+  \left(
+  \mathcal H_{\mathsf D}\otimes\mathcal H_{\mathsf R}
+  \right)
+  \]
+  that is classical on the descriptor component:
+  \[
+  \Delta
+  =
+  \sum_{\xi}
+  \ket{\xi}\bra{\xi}_{\mathsf D}
+  \otimes
+  \rho_{\xi}.
+  \]
+  The state itself is the single c-q state \(\Delta\); the displayed sum is its
+  semantic block decomposition.
+  
+  The trace condition is
+  \[
+  \operatorname{Tr}(\Delta)\le 1.
+  \]
+  Trace-\(1\) states are admissible initial states. Program denotations may
+  produce sub-normalized states.
+  
+  For semantic branch notation, write
+  \[
+  \Delta[\xi]\stackrel{\triangle}{=}\rho_{\xi}.
+  \]
+  \end{definition}
 
-For a logical list \(g\),
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
-\]
-where
-\[
-\ell_g\in\mathbb N,
-\qquad
-\alpha_g:\{1,\ldots,\ell_g\}\to \mathsf{addresses}.
-\]
-
-A filter descriptor is a finite bit-valued list. Write
-\[
-\mathsf{BitList}(N)
-=
-\{0,1\}^{N}
-\]
-and
-\[
-\mathsf{Filt}(m,N)
-=
-\{F\in\{0,1\}^{N}:\operatorname{wt}(F)=m\}.
-\]
-
-A c-q state is a finite- or countable-support family
-\[
-\Delta=(\rho_{\xi})_{\xi},
-\]
-where each \(\rho_{\xi}\) is a positive sub-normalized physical-register
-c-q state and
-\[
-\sum_{\xi}\operatorname{Tr}(\rho_{\xi})\le 1.
-\]
-
-Trace-\(1\) states are admissible initial states. Program denotations may
-produce sub-normalized states; in particular, \(\mathbf{abort}\) denotes the
-zero state.
-\end{definition}
 
 
-For filter, write
-\[
-\mathsf{BitList}(N)
-=
-\{0,1\}^{N}
-\]
-and
-\[
-\mathsf{Filt}(m,N)
-=
-\{F\in\{0,1\}^{N}:\operatorname{wt}(F)=m\}.
-\]
 
-A filter expression is either a filter name or a deterministic all-one filter:
-\[
-\varphi ::= f \mid \mathbf 1_J .
-\]
-Its interpretation is
-\[
-\llbracket f\rrbracket_{\xi}=\xi(f),
-\]
-and
-\[
-\llbracket \mathbf 1_J\rrbracket_{\xi}
-=
-1^{\llbracket J\rrbracket_{\xi}}.
-\]
 
-The assertion
-\[
-\Pi_{\varphi}^{N}
-\]
-means that \(\varphi\) resolves to a bit-valued list of length \(N\). The
-assertion
-\[
-\Pi_{\varphi}^{m,N}
-\]
-means that \(\varphi\) resolves to a bit-valued list of length \(N\) and
-weight \(m\).
+    \begin{definition}[Resolution and Filter-Indexed Views]
+      For a logical reference,
+      \[
+      \mathsf{phys}_{\xi}(g[i])
+      =
+      \alpha_g(i),
+      \qquad
+      \text{where }
+      \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g).
+      \]
+      
+      For lists,
+      \[
+      \mathsf{phys}_{\xi}(g[1,\ldots,n])
+      =
+      (\alpha_g(1),\ldots,\alpha_g(n)).
+      \]
+      
+      If \(\xi(f)=F\), define
+      \[
+      g^{f}
+      \stackrel{\triangle}{=}
+      (g|_{F=0},g|_{F=1}),
+      \]
+      with relative order preserved inside each fiber. Thus, when
+      \[
+      \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+      \]
+      \[
+      \mathsf{phys}_{\xi}(g^{f})
+      =
+      (\alpha_g(t):1\le t\le \ell_g,\ F_t=0)
+      \cdot
+      (\alpha_g(t):1\le t\le \ell_g,\ F_t=1).
+      \]
+      
+      For views \(g_0,g_1\), define
+      \[
+      (g_0,g_1)^{\uparrow f}
+      \]
+      by
+      \[
+      \mathsf{phys}_{\xi}((g_0,g_1)^{\uparrow f})
+      =
+      \text{the unique interleaving of }
+      \mathsf{phys}_{\xi}(g_0),
+      \mathsf{phys}_{\xi}(g_1)
+      \text{ according to }\xi(f).
+      \]
+      
+      Resolution of paired views is componentwise:
+      \[
+      \mathsf{phys}_{\xi,\xi'}(u,u')
+      =
+      \left(
+      \mathsf{phys}_{\xi}(u),
+      \mathsf{phys}_{\xi'}(u')
+      \right).
+      \]
+      \end{definition}
 
-\begin{definition}[Resolution and Filter-Indexed Views]
-For a logical reference,
-\[
-\mathsf{phys}_{\xi}(g[i])
-=
-\alpha_g(i),
-\qquad
-\text{where }
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g).
-\]
-
-For lists,
-\[
-\mathsf{phys}_{\xi}(g[1,\ldots,n])
-=
-(\alpha_g(1),\ldots,\alpha_g(n)).
-\]
-
-If \(\xi(f)=F\) and
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
-\]
-define
-\[
-g^{f}
-\stackrel{\triangle}{=}
-(g|_{F=0},g|_{F=1}),
-\]
-with relative order preserved inside each filter case. Thus
-\[
-\mathsf{phys}_{\xi}(g^{f})
-=
-(\alpha_g(t):1\le t\le \ell_g,\ F_t=0)
-\cdot
-(\alpha_g(t):1\le t\le \ell_g,\ F_t=1).
-\]
-
-For views \(g_0,g_1\), define
-\[
-(g_0,g_1)^{\uparrow f}
-\]
-by
-\[
-\mathsf{phys}_{\xi}((g_0,g_1)^{\uparrow f})
-=
-\text{the unique interleaving of }
-\mathsf{phys}_{\xi}(g_0),
-\mathsf{phys}_{\xi}(g_1)
-\text{ according to }\xi(f).
-\]
-
-Resolution of paired views is componentwise:
-\[
-\mathsf{phys}_{\xi,\xi'}(u,u')
-=
-\left(
-\mathsf{phys}_{\xi}(u),
-\mathsf{phys}_{\xi'}(u')
-\right).
-\]
-\end{definition}
+      \begin{definition}[Static Admissibility]
+        Program denotations are defined only for statically admissible programs. We
+        write
+        \[
+        \Gamma\vdash_{\mathsf{wf}} S
+        \]
+        for this judgment.
+        
+        It checks descriptor and register obligations, including displayed length
+        conditions, filter length conditions, fixed-index validity, and dimension
+        compatibility.
+        
+        If
+        \[
+        \Gamma\not\vdash_{\mathsf{wf}} S,
+        \]
+        then
+        \[
+        \sem S
+        \]
+        is undefined. This is static rejection, not execution of
+        \[
+        \mathbf{abort}.
+        \]
+        \end{definition}
 
 \begin{definition}[Program Semantics]
-Descriptor integer expressions are evaluated by
+  In this definition, \(\sem S\) is used only for programs satisfying the
+  static admissibility judgment
+  \[
+  \Gamma\vdash_{\mathsf{wf}} S.
+  \]
+  Ill-formed programs have no denotation.
+  
+  Descriptor integer expressions are evaluated by
+  \[
+  \llbracket N\rrbracket_{\xi}=N,
+  \qquad
+  \llbracket \iota\rrbracket_{\xi}=\xi(\iota).
+  \]
+  
+  
+  For
+  \[
+  D=f:=_{\$}\mathbf{shuffle}(m)_N,
+  \]
+  \[
+  \sem D(\Delta)
+  =
+  \sum_{\xi}
+  \sum_{F\in\mathsf{Filt}(m,N)}
+  \frac{1}{|\mathsf{Filt}(m,N)|}
+  \ket{\xi[f\mapsto F]}\bra{\xi[f\mapsto F]}_{\mathsf D}
+  \otimes
+  \Delta[\xi].
+  \]
+  
+  For
+  \[
+  D=\iota:=\mathbf{length}(g),
+  \]
+  if
+  \[
+  \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+  \]
+  then
+  \[
+  \sem D(\Delta)
+  =
+  \sum_{\xi}
+  \ket{\xi[\iota\mapsto \ell_g]}\bra{\xi[\iota\mapsto \ell_g]}_{\mathsf D}
+  \otimes
+  \Delta[\xi].
+  \]
+  
+  For
+  \[
+  D=
+  (g_0,g_1):=
+  \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g,
+  \]
+  let
+  \[
+  e=\llbracket J\rrbracket_{\xi},
+  \qquad
+  \xi(f)=F,
+  \qquad
+  \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g).
+  \]
+  Static admissibility guarantees
+  \[
+  e=\ell_g=N,
+  \qquad
+  F\in\{0,1\}^{e}.
+  \]
+  Let \(D_f(\xi)\) be the descriptor store obtained from \(\xi\) by setting
+  \[
+  \operatorname{desc}(g_0)
+  =
+  \left(
+  |\{1\le s\le e:F_s=0\}|,
+  \ t\mapsto (\alpha_g(s):1\le s\le e,\ F_s=0)_t
+  \right),
+  \]
+  and
+  \[
+  \operatorname{desc}(g_1)
+  =
+  \left(
+  |\{1\le s\le e:F_s=1\}|,
+  \ t\mapsto (\alpha_g(s):1\le s\le e,\ F_s=1)_t
+  \right).
+  \]
+  Then
+  \[
+  \sem D(\Delta)
+  =
+  \sum_{\xi}
+  \ket{D_f(\xi)}\bra{D_f(\xi)}_{\mathsf D}
+  \otimes
+  \Delta[\xi].
+  \]
+  
+  For
+  \[
+  D=
+  g:=
+  \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1,
+  \]
+  let
+  \[
+  e=\llbracket J\rrbracket_{\xi},
+  \qquad
+  \xi(f)=F,
+  \]
+  and
+  \[
+  \operatorname{desc}_{\xi}(g_0)=(\ell_{g_0},\alpha_{g_0}),
+  \qquad
+  \operatorname{desc}_{\xi}(g_1)=(\ell_{g_1},\alpha_{g_1}).
+  \]
+  Static admissibility guarantees
+  \[
+  e=N,
+  \qquad
+  F\in\{0,1\}^{e},
+  \]
+  \[
+  |\{1\le t\le e:F_t=0\}|=\ell_{g_0},
+  \qquad
+  |\{1\le t\le e:F_t=1\}|=\ell_{g_1}.
+  \]
+  Let \(D_f(\xi)\) be the descriptor store obtained from \(\xi\) by setting
+  \(g\) to the unique descriptor list \(h=(e,\alpha_h)\) satisfying
+  \[
+  \alpha_h(t)=
+  \begin{cases}
+  \alpha_{g_0}\!\left(|\{1\le s\le t:F_s=0\}|\right),
+  &
+  F_t=0,
+  \\[0.6ex]
+  \alpha_{g_1}\!\left(|\{1\le s\le t:F_s=1\}|\right),
+  &
+  F_t=1.
+  \end{cases}
+  \]
+  Then
+  \[
+  \sem D(\Delta)
+  =
+  \sum_{\xi}
+  \ket{D_f(\xi)}\bra{D_f(\xi)}_{\mathsf D}
+  \otimes
+  \Delta[\xi].
+  \]
+  
+  For
+  \[
+  \mathbf{skip},
+  \]
+  \[
+  \sem{\mathbf{skip}}(\Delta)=\Delta.
+  \]
+  
+  For the explicit command
+  \[
+  \mathbf{abort},
+  \]
+  \[
+  \sem{\mathbf{abort}}(\Delta)=0.
+  \]
+  
+  For sequencing,
+  \[
+  \sem{S_0;S_1}
+  =
+  \sem{S_1}\circ \sem{S_0}.
+  \]
+  
+  For a register command \(R\),
+  \[
+  \sem R(\Delta)
+  =
+  \sum_{\xi}
+  \ket{\xi}\bra{\xi}_{\mathsf D}
+  \otimes
+  \mathcal E^R_{\xi}(\Delta[\xi]).
+  \]
+  
+  For
 \[
-\llbracket N\rrbracket_{\xi}=N,
-\qquad
-\llbracket \iota\rrbracket_{\xi}=\xi(\iota).
-\]
-
-Filter expressions are evaluated by
-\[
-\llbracket f\rrbracket_{\xi}=\xi(f),
-\]
-and
-\[
-\llbracket \mathbf 1_J\rrbracket_{\xi}
-=
-1^{\llbracket J\rrbracket_{\xi}}.
-\]
-
-For
-\[
-D=f:=_{\$}\mathbf{shuffle}(m)_N,
-\]
-\[
-\sem D(\Delta)_{\xi'}
-=
-\sum_{\substack{\xi,\ F\in\mathsf{Filt}(m,N)\\
-\xi'=\xi[f\mapsto F]}}
-\frac{1}{|\mathsf{Filt}(m,N)|}\rho_{\xi}.
-\]
-
-For
-\[
-D=\iota:=\mathbf{length}(g),
-\]
-if
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
-\]
-then
-\[
-\sem D(\Delta)_{\xi'}
-=
-\sum_{\xi:\xi'=\xi[\iota\mapsto \ell_g]}
-\rho_{\xi}.
-\]
-
-For
-\[
-D=
-(g_0,g_1):=
-\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g,
-\]
-let
-\[
-e=\llbracket J\rrbracket_{\xi},
-\qquad
-\xi(f)=F,
-\qquad
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g).
-\]
-The command is well formed only when
-\[
-e=\ell_g=N,
-\qquad
-F\in\{0,1\}^{e}.
-\]
-Then \(D_f(\xi)\) sets
-\[
-\operatorname{desc}(g_0)
-=
-\left(
-|\{1\le s\le e:F_s=0\}|,
-\ t\mapsto (\alpha_g(s):1\le s\le e,\ F_s=0)_t
-\right),
-\]
-and
-\[
-\operatorname{desc}(g_1)
-=
-\left(
-|\{1\le s\le e:F_s=1\}|,
-\ t\mapsto (\alpha_g(s):1\le s\le e,\ F_s=1)_t
-\right).
-\]
-Thus
-\[
-\sem{D}(\Delta)_{\xi'}
-=
-\sum_{\xi:D_f(\xi)=\xi'}
-\rho_{\xi}.
-\]
-
-For
-\[
-D=
-g:=
-\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1,
-\]
-let
-\[
-e=\llbracket J\rrbracket_{\xi},
-\qquad
-\xi(f)=F,
-\]
-and
-\[
-\operatorname{desc}_{\xi}(g_0)=(\ell_{g_0},\alpha_{g_0}),
-\qquad
-\operatorname{desc}_{\xi}(g_1)=(\ell_{g_1},\alpha_{g_1}).
-\]
-The command is well formed only when
-\[
-e=N,
-\qquad
-F\in\{0,1\}^{e},
-\]
-\[
-|\{1\le t\le e:F_t=0\}|=\ell_{g_0},
-\qquad
-|\{1\le t\le e:F_t=1\}|=\ell_{g_1}.
-\]
-Then \(D_f(\xi)\) sets \(g\) to the unique descriptor list \(h=(e,\alpha_h)\)
-satisfying
-\[
-\alpha_h(t)=
-\begin{cases}
-\alpha_{g_0}\!\left(|\{1\le s\le t:F_s=0\}|\right),
-&
-F_t=0,
-\\[0.6ex]
-\alpha_{g_1}\!\left(|\{1\le s\le t:F_s=1\}|\right),
-&
-F_t=1.
-\end{cases}
-\]
-Thus
-\[
-\sem{D}(\Delta)_{\xi'}
-=
-\sum_{\xi:D_f(\xi)=\xi'}
-\rho_{\xi}.
-\]
-
-For
-\[
-\mathbf{skip},
-\]
-\[
-\sem{\mathbf{skip}}(\Delta)=\Delta.
-\]
-
-For
-\[
-\mathbf{abort},
-\]
-\[
-\sem{\mathbf{abort}}(\Delta)_{\xi}=0
-\qquad
-\text{for every }\xi.
-\]
-
-For sequencing,
-\[
-\sem{S_0;S_1}
-=
-\sem{S_1}\circ \sem{S_0}.
-\]
-
-For a register command \(R\),
-\[
-\sem R(\Delta)_{\xi}
-=
-\mathcal E^R_{\xi}(\rho_{\xi}).
-\]
-
-For
-\[
-z:=_{\$}\mathbf{rand}(n,\varphi),
+z:=_{\$}\mathbf{rand}(n),
 \]
 let
 \[
@@ -693,428 +715,437 @@ The register effect is
 \otimes
 \operatorname{Tr}_{\vec a}(\rho).
 \]
+  
+  For conditionals, let \(\Pi_{B,\xi}\) be the branchwise classical projector
+  defined by the predicate \(B\), with descriptor integers interpreted using
+  \(\xi\). Then
+  \[
+  \sem{
+  \mathbf{if}\ B\rightarrow R_0,\ \mathbf{else}\rightarrow R_1
+  }(\Delta)
+  =
+  \sum_{\xi}
+  \ket{\xi}\bra{\xi}_{\mathsf D}
+  \otimes
+  \left[
+  \mathcal E^{R_0}_{\xi}
+  \left(
+  \Pi_{B,\xi}\Delta[\xi]\Pi_{B,\xi}
+  \right)
+  +
+  \mathcal E^{R_1}_{\xi}
+  \left(
+  \Pi_{\neg B,\xi}\Delta[\xi]\Pi_{\neg B,\xi}
+  \right)
+  \right].
+  \]
+  \end{definition}
 
-For conditionals, let \(\Pi_{B,\xi}\) be the branchwise classical projector
-defined by the predicate \(B\), with descriptor integers interpreted using
-\(\xi\). Then
-\[
-\sem{
-\mathbf{if}\ B\rightarrow R_0,\ \mathbf{else}\rightarrow R_1
-}(\Delta)_{\xi}
+
+  \begin{definition}[Assertion Language and Semantics]
+    Single-side view expressions are generated by
+      \[
+      u ::=
+      g[i]
+      \mid
+      g[1,\ldots,n]
+      \mid
+      g
+      \mid
+      g^{f}
+      \mid
+      (g_0,g_1)^{\uparrow f}.
+      \]
+      
+      Paired view indices are generated by
+      \[
+      \mathcal V ::=
+      (u,u')
+      \mid
+      [(u_1,u'_1),\ldots,(u_k,u'_k)].
+      \]
+      
+      Assertions are generated by
+      \[
+      \Phi_{\mathcal V} ::=
+      A_{\mathcal V}
+      \mid
+      \equiv_{(u,u')}
+      \mid
+      \equiv_{(f,f')}
+      \mid
+      \equiv_{(\iota,\iota')}
+      \mid
+      \Pi_{f}^{N}
+      \mid
+      \Pi_{f}^{m,N}
+      \mid
+      \Pi_{z}^{\mu}
+      \mid
+      \Pi_{z}^{D}
+      \mid
+      \equiv_{(z,z')}^{\mu}
+      \mid
+      \equiv_{(z,z')}^{D}
+      \mid
+      \Phi_{\mathcal V_0}\land\Psi_{\mathcal V_1}
+      \mid
+      \Phi_{\mathcal V_0}\lor\Psi_{\mathcal V_1}
+      \mid
+      \neg\Phi_{\mathcal V_0}
+      \mid
+      \Phi_{\mathcal V_0} * C_{\mathcal U}
+      \mid
+      \operatorname{proj}\!\left(
+      \operatorname{Tr}_{\mathcal U}(\Phi_{\mathcal V_0})
+      \right).
+      \]
+    
+    For current descriptor stores \((\xi,\xi')\), an assertion denotes a local
+    projector
+    \[
+    \llbracket \Phi_{\mathcal V}\rrbracket_{\xi,\xi'}
+    \]
+    on the resolved left/right physical register memories. If \(\mathcal V\) is
+    not well formed under \((\xi,\xi')\), then
+    \[
+    \llbracket \Phi_{\mathcal V}\rrbracket_{\xi,\xi'}
+    =
+    0_{\mathsf{Reg}^{L,R}}.
+    \]
+    
+    For primitive view-indexed assertions,
+    \[
+    \llbracket A_{\mathcal V}\rrbracket_{\xi,\xi'}
+    \stackrel{\triangle}{=}
+    A_{\mathsf{phys}_{\xi,\xi'}(\mathcal V)}.
+    \]
+    
+    Descriptor-only assertions are scalar local assertions:
+    \[
+\llbracket \equiv_{(f,f')}\rrbracket_{\xi,\xi'}
 =
-\mathcal E^{R_0}_{\xi}
-\left(
-\Pi_{B,\xi}\rho_{\xi}\Pi_{B,\xi}
-\right)
-+
-\mathcal E^{R_1}_{\xi}
-\left(
-\Pi_{\neg B,\xi}\rho_{\xi}\Pi_{\neg B,\xi}
-\right).
-\]
-\end{definition}
-
-
-\begin{definition}[View Index and Local Assertions]
-A view index is a displayed left/right view expression
-\[
-\mathcal V.
-\]
-It is a proof-side syntactic index.  It contains logical view names, list
-expressions, and filter-indexed view expressions such as
-\[
-g^f,
-\qquad
-(g_0,g_1)^{\uparrow f}.
-\]
-It does not contain the current descriptor store.
-
-An assertion is written with an explicit view index:
-\[
-\Phi_{\mathcal V}.
-\]
-For every pair of current left/right descriptor stores \((\xi,\xi')\), the
-assertion denotes a local projector
-\[
-\llbracket \Phi_{\mathcal V}\rrbracket_{\xi,\xi'}
-\]
-on the resolved left/right physical register memories determined by
-\[
-\mathsf{phys}_{\xi,\xi'}(\mathcal V).
-\]
-If \(\mathcal V\) is not well formed under \((\xi,\xi')\), then
-\[
-\llbracket \Phi_{\mathcal V}\rrbracket_{\xi,\xi'}
-=
-0_{\mathsf{Reg}^{L,R}}.
-\]
-
-Thus \(\mathcal V\) is the assertion index, while \(\xi,\xi'\) are semantic
-parameters used to interpret that index.
-
-Operators with view subscripts are interpreted locally.  For example,
-\[
-U_{\bar q[\mathbf i]},
-\qquad
-\ket a_{x[i]}\bra a,
-\qquad
-\equiv_{(u,u')}
-\]
-are interpreted branchwise after resolving the displayed views under
-\((\xi,\xi')\).
-
-Descriptor-only assertions are scalar local assertions.  Their denotation is
-either
-\[
-I_{\mathsf{Reg}^{L,R}}
-\]
-or
-\[
-0_{\mathsf{Reg}^{L,R}}
-\]
-under each semantic pair \((\xi,\xi')\).
-
-For filter expressions,
-\[
-\llbracket \equiv_{(\varphi,\varphi')}\rrbracket_{\xi,\xi'}
-\stackrel{\triangle}{=}
 \begin{cases}
 I_{\mathsf{Reg}^{L,R}},
 &
-\llbracket\varphi\rrbracket_{\xi}
-=
-\llbracket\varphi'\rrbracket_{\xi'},
+\xi(f)=\xi'(f'),
 \\[0.4ex]
 0_{\mathsf{Reg}^{L,R}},
 &
-\text{otherwise}.
+\text{otherwise},
 \end{cases}
 \]
-
-For descriptor integers,
+    \[
+    \llbracket \equiv_{(\iota,\iota')}\rrbracket_{\xi,\xi'}
+    =
+    \begin{cases}
+    I_{\mathsf{Reg}^{L,R}},
+    &
+    \xi(\iota)=\xi'(\iota'),
+    \\[0.4ex]
+    0_{\mathsf{Reg}^{L,R}},
+    &
+    \text{otherwise}.
+    \end{cases}
+    \]
+    
+    For one-sided filter support,
 \[
-\llbracket \equiv_{(\iota,\iota')}\rrbracket_{\xi,\xi'}
-\stackrel{\triangle}{=}
+\llbracket \Pi_{f}^{N}\rrbracket_{\xi,\xi'}
+=
 \begin{cases}
 I_{\mathsf{Reg}^{L,R}},
 &
-\xi(\iota)=\xi'(\iota'),
+\xi(f)\in\{0,1\}^{N},
 \\[0.4ex]
 0_{\mathsf{Reg}^{L,R}},
 &
-\text{otherwise}.
+\text{otherwise},
 \end{cases}
-\]
-
-For one-sided filter length support,
-\[
-\llbracket \Pi_{\varphi}^{N}\rrbracket_{\xi,\xi'}
-\stackrel{\triangle}{=}
-\begin{cases}
-I_{\mathsf{Reg}^{L,R}},
-&
-\llbracket\varphi\rrbracket_{\xi}\in\{0,1\}^{N},
-\\[0.4ex]
-0_{\mathsf{Reg}^{L,R}},
-&
-\text{otherwise}.
-\end{cases}
-\]
-
-For one-sided filter weight support,
-\[
-\llbracket \Pi_{\varphi}^{m,N}\rrbracket_{\xi,\xi'}
-\stackrel{\triangle}{=}
-\begin{cases}
-I_{\mathsf{Reg}^{L,R}},
-&
-\llbracket\varphi\rrbracket_{\xi}\in\mathsf{Filt}(m,N),
-\\[0.4ex]
-0_{\mathsf{Reg}^{L,R}},
-&
-\text{otherwise}.
-\end{cases}
-\]
-
-For finite-support \(\mu\), define locally
-\[
-\Pi_z^\mu
-\stackrel{\triangle}{=}
-\sum_{a\in\operatorname{supp}(\mu)}
-\ket a_z\bra a .
-\]
-
-For paired \(z,z'\), define locally
-\[
-\equiv^\mu_{(z,z')}
-\stackrel{\triangle}{=}
-\sum_{a\in\operatorname{supp}(\mu)}
-\ket a_z\bra a
-\otimes
-\ket a_{z'}\bra a .
-\]
-
-For a pair of classical logical references \(z,z'\) of the same finite value
-domain \(D\), define locally
-\[
-\equiv^{D}_{(z,z')}
-\stackrel{\triangle}{=}
-\sum_{a\in D}
-\ket a_z\bra a
-\otimes
-\ket a_{z'}\bra a .
-\]
-
-For probability-register entries \(p[i],p'[j]\),
-\[
-\equiv^{\mu}_{(p[i],p'[j])}
-\stackrel{\triangle}{=}
-\equiv^{\operatorname{supp}(\mu)}_{(p[i],p'[j])}.
-\]
-
-For a pair of quantum logical references \(\bar q[i],\bar q'[j]\),
-\[
-\equiv_{(\bar q[i],\bar q'[j])}
-\]
-is symmetric quantum equality:
-\[
-=_{\mathrm{sym}}
-=
-\frac{1}{2}(I\otimes I+\mathsf{SWAP})
-\]
-on the two resolved systems, extended by identity.
-
-For whole-list equality,
-\[
-\equiv_{(g,g')}
-\]
-is interpreted under \((\xi,\xi')\).  If
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
-\qquad
-\operatorname{desc}_{\xi'}(g')=(\ell'_{g'},\alpha'_{g'}),
-\qquad
-\ell_g=\ell'_{g'},
-\]
-then
-\[
-\equiv_{(g,g')}
-\stackrel{\triangle}{=}
-\bigwedge_{t=1}^{\ell_g}
-\equiv_{(g[t],g'[t])}.
-\]
-If the lengths are not equal, the denotation is \(0\).
-
-For fixed-length list equality,
-\[
-\equiv_{(g[1,\ldots,n],g'[1,\ldots,n'])}
-\]
-is interpreted under \((\xi,\xi')\).  If \(n=n'\), then
-\[
-\equiv_{(g[1,\ldots,n],g'[1,\ldots,n])}
-\stackrel{\triangle}{=}
-\bigwedge_{t=1}^{n}
-\equiv_{(g[t],g'[t])}.
-\]
-If \(n\neq n'\), the denotation is \(0\).
-
-Filter-indexed view equality is interpreted under \((\xi,\xi')\).  If
-\[
-\llbracket\varphi\rrbracket_{\xi}=F,
-\qquad
-\llbracket\varphi'\rrbracket_{\xi'}=F',
-\]
-then
-\[
-\equiv_{(g^{\varphi},g'^{\varphi'})}
-\]
-is nonzero only when
-\[
-\operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
-\qquad
-\operatorname{desc}_{\xi'}(g')=(\ell'_{g'},\alpha'_{g'}),
-\]
-\[
-\ell_g=\ell'_{g'},
-\qquad
-F,F'\in\{0,1\}^{\ell_g},
-\qquad
-F=F'.
-\]
-Under these conditions, it is ordinary equality on the resolved ordered views
-\[
-\mathsf{phys}_{\xi}(g^{\varphi})
-\qquad\text{and}\qquad
-\mathsf{phys}_{\xi'}(g'^{\varphi'}).
-\]
-If any condition fails, the denotation is \(0\).
-
-For projective assertions \(\Phi,\Psi\), define \(\Phi\land\Psi\),
-\(\Phi\lor\Psi\), and \(\neg\Phi\) branchwise:
-\[
-\llbracket \Phi\land\Psi\rrbracket_{\xi,\xi'}
-=
-\operatorname{proj}
-\left(
-\operatorname{Im}\llbracket \Phi\rrbracket_{\xi,\xi'}
-\cap
-\operatorname{Im}\llbracket \Psi\rrbracket_{\xi,\xi'}
-\right),
-\]
-\[
-\llbracket \Phi\lor\Psi\rrbracket_{\xi,\xi'}
-=
-\operatorname{proj}
-\left(
-\operatorname{Im}\llbracket \Phi\rrbracket_{\xi,\xi'}
-+
-\operatorname{Im}\llbracket \Psi\rrbracket_{\xi,\xi'}
-\right),
-\]
-\[
-\llbracket \neg\Phi\rrbracket_{\xi,\xi'}
-=
-I_{\mathsf{Reg}^{L,R}}
--
-\llbracket \Phi\rrbracket_{\xi,\xi'}.
-\]
-If
-\[
-\llbracket\Phi\rrbracket_{\xi,\xi'}
-\llbracket\Psi\rrbracket_{\xi,\xi'}=0
-\]
-branchwise, then branchwise
-\[
-\Phi\lor\Psi=\Phi+\Psi.
-\]
-
-The notation
-\[
-\operatorname{proj}
-\left(
-\operatorname{Tr}_{\mathcal U}(\Phi)
-\right)
-\]
-means the local register-view projection defined branchwise by
-\[
-\llbracket
-\operatorname{proj}
-\left(
-\operatorname{Tr}_{\mathcal U}(\Phi)
-\right)
-\rrbracket_{\xi,\xi'}
-=
-\operatorname{proj}
-\left(
-\operatorname{Tr}_{\mathsf{phys}_{\xi,\xi'}(\mathcal U)}
-\left(
-\llbracket\Phi\rrbracket_{\xi,\xi'}
-\right)
-\right).
-\]
-This operation traces only register payload systems.  It does not erase or
-modify descriptor data.
-
-The separated conjunction
-\[
-\Phi_{\mathcal V} * C_{\mathcal U}
-\]
-is well formed only when the current auxiliary resource contexts certify that
-\(\mathcal V\) and \(\mathcal U\) are live and physically disjoint on each
-side.  Semantically, it is interpreted branchwise as
-\[
-\Phi_{\mathcal V} * C_{\mathcal U}
-\stackrel{\triangle}{=}
-\Phi_{\mathcal V}\land C_{\mathcal U}.
-\]
-
-Write \(\equiv\) when the view index is clear.
-\end{definition}
-
-\begin{definition}[Approximate Classical-Quantum Lifting]
-For c-q states
-\[
-\Delta=(\rho_{\xi})_{\xi},
-\qquad
-\Delta'=(\rho'_{\xi'})_{\xi'},
-\]
-write
-\[
-\Delta\ \Phi^\delta\ \Delta'
-\]
-if there exists a witness
-\[
-\pi=(\omega_{\xi,\xi'})_{\xi,\xi'}
-\]
-such that
-\[
-\omega_{\xi,\xi'}
-\in
-\operatorname{SepD}_{\le 1}(\mathcal H_L:\mathcal H_R),
-\]
-\[
-\sum_{\xi'}
-\operatorname{Tr}_R(\omega_{\xi,\xi'})
-=
-\rho_{\xi},
-\]
-\[
-\sum_{\xi}
-\operatorname{Tr}_L(\omega_{\xi,\xi'})
-=
-\rho'_{\xi'},
 \]
 and
 \[
-\sum_{\xi,\xi'}
-\operatorname{Tr}
-\left(
-\llbracket\Phi\rrbracket_{\xi,\xi'}
-\omega_{\xi,\xi'}
-\right)
-\ge
-\operatorname{Tr}(\pi)-\delta .
-\]
-
-Here
-\[
-\operatorname{Tr}(\pi)
-\stackrel{\triangle}{=}
-\sum_{\xi,\xi'}
-\operatorname{Tr}(\omega_{\xi,\xi'}).
-\]
-
-For \(\delta=0\), write
-\[
-\Delta\ \Phi\ \Delta' .
-\]
-\end{definition}
-
-Here
-\[
-\operatorname{SepD}_{\le 1}(\mathcal H_L:\mathcal H_R)
-\]
-denotes the set of sub-normalized separable positive operators. That is,
-\[
-\omega\in\operatorname{SepD}_{\le 1}(\mathcal H_L:\mathcal H_R)
-\]
-iff
-\[
-\omega
+\llbracket \Pi_{f}^{m,N}\rrbracket_{\xi,\xi'}
 =
-\sum_k p_k\,
-\rho^L_k\otimes\rho^R_k,
-\qquad
-p_k\ge 0,
-\qquad
-\sum_k p_k\le 1,
+\begin{cases}
+I_{\mathsf{Reg}^{L,R}},
+&
+\xi(f)\in\mathsf{Filt}(m,N),
+\\[0.4ex]
+0_{\mathsf{Reg}^{L,R}},
+&
+\text{otherwise}.
+\end{cases}
 \]
-for some
-\[
-\rho^L_k\in D(\mathcal H_L),
-\qquad
-\rho^R_k\in D(\mathcal H_R).
-\]
+    
+    For finite-support \(\mu\) and finite domain \(D\),
+    \[
+    \Pi_z^\mu
+    \stackrel{\triangle}{=}
+    \sum_{a\in\operatorname{supp}(\mu)}
+    \ket a_z\bra a ,
+    \qquad
+    \Pi_z^D
+    \stackrel{\triangle}{=}
+    \sum_{a\in D}
+    \ket a_z\bra a .
+    \]
+    For paired views,
+    \[
+    \equiv^\mu_{(z,z')}
+    \stackrel{\triangle}{=}
+    \sum_{a\in\operatorname{supp}(\mu)}
+    \ket a_z\bra a
+    \otimes
+    \ket a_{z'}\bra a ,
+    \]
+    and
+    \[
+    \equiv^D_{(z,z')}
+    \stackrel{\triangle}{=}
+    \sum_{a\in D}
+    \ket a_z\bra a
+    \otimes
+    \ket a_{z'}\bra a .
+    \]
+    
+    For probability-register entries,
+    \[
+    \equiv^{\mu}_{(p[i],p'[j])}
+    \stackrel{\triangle}{=}
+    \equiv^{\operatorname{supp}(\mu)}_{(p[i],p'[j])}.
+    \]
+    
+    For quantum logical references,
+    \[
+    \equiv_{(\bar q[i],\bar q'[j])}
+    \]
+    is symmetric quantum equality:
+    \[
+    =_{\mathrm{sym}}
+    =
+    \frac{1}{2}(I\otimes I+\mathsf{SWAP})
+    \]
+    on the resolved systems, extended by identity.
+    
+    For whole-list equality, if
+    \[
+    \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+    \qquad
+    \operatorname{desc}_{\xi'}(g')=(\ell'_{g'},\alpha'_{g'}),
+    \qquad
+    \ell_g=\ell'_{g'},
+    \]
+    then
+    \[
+    \equiv_{(g,g')}
+    \stackrel{\triangle}{=}
+    \bigwedge_{t=1}^{\ell_g}
+    \equiv_{(g[t],g'[t])}.
+    \]
+    Otherwise its denotation is \(0\).
+    
+    For fixed-length list equality, if \(n=n'\), then
+    \[
+    \equiv_{(g[1,\ldots,n],g'[1,\ldots,n])}
+    \stackrel{\triangle}{=}
+    \bigwedge_{t=1}^{n}
+    \equiv_{(g[t],g'[t])}.
+    \]
+    If \(n\neq n'\), its denotation is \(0\).
+    
+    For filter-indexed view equality, suppose
+    \[
+    \xi(f)=F,
+    \qquad
+    \xi'(f')=F'.
+    \]
+    The assertion
+    \[
+    \equiv_{(g^{f},g'^{f'})}
+    \]
+    is ordinary equality on the resolved ordered views when
+    \[
+    \operatorname{desc}_{\xi}(g)=(\ell_g,\alpha_g),
+    \qquad
+    \operatorname{desc}_{\xi'}(g')=(\ell'_{g'},\alpha'_{g'}),
+    \]
+    \[
+    \ell_g=\ell'_{g'},
+    \qquad
+    F,F'\in\{0,1\}^{\ell_g},
+    \qquad
+    F=F'.
+    \]
+    Otherwise its denotation is \(0\).
+    
+    For projective assertions \(\Phi,\Psi\), define branchwise:
+    \[
+    \llbracket \Phi\land\Psi\rrbracket_{\xi,\xi'}
+    =
+    \operatorname{proj}
+    \left(
+    \operatorname{Im}\llbracket \Phi\rrbracket_{\xi,\xi'}
+    \cap
+    \operatorname{Im}\llbracket \Psi\rrbracket_{\xi,\xi'}
+    \right),
+    \]
+    \[
+    \llbracket \Phi\lor\Psi\rrbracket_{\xi,\xi'}
+    =
+    \operatorname{proj}
+    \left(
+    \operatorname{Im}\llbracket \Phi\rrbracket_{\xi,\xi'}
+    +
+    \operatorname{Im}\llbracket \Psi\rrbracket_{\xi,\xi'}
+    \right),
+    \]
+    \[
+    \llbracket \neg\Phi\rrbracket_{\xi,\xi'}
+    =
+    I_{\mathsf{Reg}^{L,R}}
+    -
+    \llbracket \Phi\rrbracket_{\xi,\xi'}.
+    \]
+    If
+    \[
+    \llbracket\Phi\rrbracket_{\xi,\xi'}
+    \llbracket\Psi\rrbracket_{\xi,\xi'}=0
+    \]
+    branchwise, then
+    \[
+    \Phi\lor\Psi=\Phi+\Psi.
+    \]
+    
+    The notation
+    \[
+    \operatorname{proj}
+    \left(
+    \operatorname{Tr}_{\mathcal U}(\Phi)
+    \right)
+    \]
+    means
+    \[
+    \llbracket
+    \operatorname{proj}
+    \left(
+    \operatorname{Tr}_{\mathcal U}(\Phi)
+    \right)
+    \rrbracket_{\xi,\xi'}
+    =
+    \operatorname{proj}
+    \left(
+    \operatorname{Tr}_{\mathsf{phys}_{\xi,\xi'}(\mathcal U)}
+    \left(
+    \llbracket\Phi\rrbracket_{\xi,\xi'}
+    \right)
+    \right).
+    \]
+    It traces only register payload systems.
+    
+    The separated conjunction
+    \[
+    \Phi_{\mathcal V} * C_{\mathcal U}
+    \]
+    is well formed only when the auxiliary resource contexts certify that
+    \(\mathcal V\) and \(\mathcal U\) are live and physically disjoint on each
+    side. Semantically,
+    \[
+    \Phi_{\mathcal V} * C_{\mathcal U}
+    \stackrel{\triangle}{=}
+    \Phi_{\mathcal V}\land C_{\mathcal U}.
+    \]
+    
+    Write \(\equiv\) when the view index is clear.
+    \end{definition}
+
+    \begin{definition}[Approximate Classical-Quantum Lifting]
+      For descriptor-register c-q states
+      \[
+      \Delta
+      \qquad
+      \text{and}
+      \qquad
+      \Delta',
+      \]
+      write
+      \[
+      \Delta\ \Phi^\delta\ \Delta'
+      \]
+      if there exists a descriptor-register c-q witness
+      \[
+      \pi
+      =
+      \sum_{\xi,\xi'}
+      \ket{\xi}\bra{\xi}_{\mathsf D_L}
+      \otimes
+      \ket{\xi'}\bra{\xi'}_{\mathsf D_R}
+      \otimes
+      \omega_{\xi,\xi'}
+      \]
+      such that
+      \[
+      \omega_{\xi,\xi'}
+      \in
+      \operatorname{SepD}_{\le 1}(\mathcal H^L_{\mathsf R}:\mathcal H^R_{\mathsf R}),
+      \]
+      \[
+      \operatorname{Tr}_{\mathsf D_R,\mathsf R_R}(\pi)
+      =
+      \Delta,
+      \qquad
+      \operatorname{Tr}_{\mathsf D_L,\mathsf R_L}(\pi)
+      =
+      \Delta',
+      \]
+      and, with
+      \[
+      \llbracket\Phi\rrbracket^{\sharp}
+      \stackrel{\triangle}{=}
+      \sum_{\xi,\xi'}
+      \ket{\xi}\bra{\xi}_{\mathsf D_L}
+      \otimes
+      \ket{\xi'}\bra{\xi'}_{\mathsf D_R}
+      \otimes
+      \llbracket\Phi\rrbracket_{\xi,\xi'},
+      \]
+      \[
+      \operatorname{Tr}
+      \left(
+      \llbracket\Phi\rrbracket^{\sharp}
+      \pi
+      \right)
+      \ge
+      \operatorname{Tr}(\pi)-\delta.
+      \]
+      
+      For \(\delta=0\), write
+      \[
+      \Delta\ \Phi\ \Delta' .
+      \]
+      \end{definition}
+
+      Here
+      \[
+      \operatorname{SepD}_{\le 1}(\mathcal H_L:\mathcal H_R)
+      \]
+      denotes the set of sub-normalized separable positive operators:
+      \[
+      \omega
+      =
+      \sum_k p_k\,
+      \rho^L_k\otimes\rho^R_k,
+      \qquad
+      p_k\ge 0,
+      \qquad
+      \sum_k p_k\le 1,
+      \]
+      where
+      \[
+      \rho^L_k\in D(\mathcal H_L),
+      \qquad
+      \rho^R_k\in D(\mathcal H_R).
+      \]
 
 
 
@@ -1129,65 +1160,63 @@ certified by a resource system, not stored in \(\Gamma\). Entailments have form
 \end{definition}
 
 \begin{definition}[Paired Logical Views]
-A paired logical view is a finite list
-\[
-\mathcal V=
-[(u_1,u'_1),\ldots,(u_m,u'_m)],
-\]
-where \(u_i,u'_i\) are corresponding left/right logical references or lists.
-
-Resolution is componentwise:
-\[
-\mathsf{phys}_{\xi,\xi'}(u,u')
-=
-\left(
-\mathsf{phys}_{\xi}(u),
-\mathsf{phys}_{\xi'}(u')
-\right).
-\]
-\end{definition}
+  A paired logical view is a finite list
+  \[
+  \mathcal V=
+  [(u_1,u'_1),\ldots,(u_m,u'_m)],
+  \]
+  where \(u_i,u'_i\) are corresponding left/right logical references or lists.
+  \end{definition}
 
 
-\begin{definition}[Classical-Quantum Relational Judgment]
-A relational judgment has the form
-\[
-\Gamma
-\vdash
-P\sim_{\delta}P'
-:
-\Phi_{\mathcal V}
-\Longrightarrow
-\Psi_{\mathcal W}.
-\]
-
-It is valid iff for all well-typed \(\Delta,\Delta'\), every witness \(\pi\)
-for
-\[
-\Delta\ \Phi_{\mathcal V}\ \Delta'
-\]
-with
-\[
-\operatorname{supp}_{\mathsf{cl}}(\pi)\models\Gamma
-\]
-satisfies
-\[
-\llbracket P\rrbracket(\Delta)
-\ \Psi_{\mathcal W}^{\delta}\
-\llbracket P'\rrbracket(\Delta').
-\]
-
-\(\delta\in\mathbb R_{\ge 0}\) bounds postcondition-violating mass. For
-\(\delta=0\), write
-\[
-\Gamma
-\vdash
-P\sim P'
-:
-\Phi_{\mathcal V}
-\Longrightarrow
-\Psi_{\mathcal W}.
-\]
-\end{definition}
+  \begin{definition}[Classical-Quantum Relational Judgment]
+    A relational judgment has the form
+    \[
+    \Gamma
+    \vdash
+    P\sim_{\delta}P'
+    :
+    \Phi_{\mathcal V}
+    \Longrightarrow
+    \Psi_{\mathcal W}.
+    \]
+    
+    The judgment is well formed only when
+    \[
+    \Gamma\vdash_{\mathsf{wf}} P
+    \qquad
+    \text{and}
+    \qquad
+    \Gamma\vdash_{\mathsf{wf}} P'.
+    \]
+    
+    It is valid iff for all well-typed \(\Delta,\Delta'\), every witness \(\pi\)
+    for
+    \[
+    \Delta\ \Phi_{\mathcal V}\ \Delta'
+    \]
+    with
+    \[
+    \operatorname{supp}_{\mathsf{cl}}(\pi)\models\Gamma
+    \]
+    satisfies
+    \[
+    \llbracket P\rrbracket(\Delta)
+    \ \Psi_{\mathcal W}^{\delta}\
+    \llbracket P'\rrbracket(\Delta').
+    \]
+    
+    For \(\delta=0\), write
+    \[
+    \Gamma
+    \vdash
+    P\sim P'
+    :
+    \Phi_{\mathcal V}
+    \Longrightarrow
+    \Psi_{\mathcal W}.
+    \]
+    \end{definition}
 
 
 \begin{definition}[Auxiliary-Certified Relational Derivation]
@@ -1211,11 +1240,8 @@ For every program \(P\), we use four footprint components:
 \operatorname{rupd}(P).
 \]
 
-\(\operatorname{dacc}(P)\) and \(\operatorname{dupd}(P)\) are the
-descriptor-data access and update footprints.
-
-\(\operatorname{racc}(P)\) and \(\operatorname{rupd}(P)\) are the
-register-payload access and update footprints.
+\(\operatorname{dacc},\operatorname{dupd}\) are descriptor-data footprints, and
+\(\operatorname{racc},\operatorname{rupd}\) are register-payload footprints.
 
 \[
 \operatorname{acc}(P)
@@ -1257,12 +1283,6 @@ For descriptor integer expressions,
 \operatorname{dacc}(\iota)=\{\iota\}.
 \]
 
-For filter expressions,
-\[
-\operatorname{dacc}(f)=\{f\},
-\qquad
-\operatorname{dacc}(\mathbf 1_J)=\operatorname{dacc}(J).
-\]
 
 For classical expressions,
 \[
@@ -1386,12 +1406,12 @@ x[i]:=E,
 
 For
 \[
-z:=_{\$}\mathbf{rand}(n,\varphi),
+z:=_{\$}\mathbf{rand}(n),
 \]
 \[
 \operatorname{dacc}
 =
-\{z\}\cup\operatorname{dacc}(\varphi),
+\{z\},
 \]
 \[
 \operatorname{racc}
@@ -1516,106 +1536,79 @@ For conditionals,
 \end{definition}
 
 \begin{definition}[Footprint Equality]
-For a mixed footprint set \(A\), the notation
-\[
-\equiv_A
-\]
-means the conjunction of the local equalities generated by the typed elements
-of \(A\), interpreted under the current view index.
+  For a mixed footprint set \(A\), the notation
+  \[
+  \equiv_A
+  \]
+  means the conjunction of the local equalities generated by the typed elements
+  of \(A\).
+  
+  Filter, descriptor-integer, logical-descriptor, and register-payload entries
+  respectively generate
+  \[
+  \equiv_{(f,f')},
+  \qquad
+  \equiv_{(\iota,\iota')},
+  \qquad
+  \equiv_{(g,g')},
+  \qquad
+  \equiv_{(u,u')}.
+  \]
+  
+  Thus
+  \[
+  \equiv_{\operatorname{acc}(P)}
+  \]
+  is the local equality needed to run two copies of \(P\) in lockstep, and
+  \[
+  \equiv_{\operatorname{upd}(P)}
+  \]
+  is the corresponding equality on updated views.
+  \end{definition}
 
-For filter entries,
-\[
-f\in A
-\quad\leadsto\quad
-\equiv_{(f,f')}.
-\]
-
-For descriptor integer entries,
-\[
-\iota\in A
-\quad\leadsto\quad
-\equiv_{(\iota,\iota')}.
-\]
-
-For logical descriptor names,
-\[
-g\in A
-\quad\leadsto\quad
-\equiv_{(g,g')}.
-\]
-
-For register-payload entries,
-\[
-u\in A
-\quad\leadsto\quad
-\equiv_{(u,u')},
-\]
-where \(u,u'\) are resolved using the current view index.
-
-Thus
-\[
-\equiv_{\operatorname{acc}(P)}
-\]
-means the local view-index equality needed to run the two copies of \(P\) in
-lockstep, and
-\[
-\equiv_{\operatorname{upd}(P)}
-\]
-means the corresponding local equality on the updated views.
-\end{definition}
-
-\begin{definition}[Descriptor Dependencies of View Indices]
-The descriptor dependency set of a view index is written
-\[
-\operatorname{ddep}(\mathcal V).
-\]
-
-For ordinary logical references and lists,
-\[
-\operatorname{ddep}(g[i])=\{g\},
-\qquad
-\operatorname{ddep}(g[1,\ldots,n])=\{g\},
-\qquad
-\operatorname{ddep}(g)=\{g\}.
-\]
-
-For descriptor integer expressions,
-\[
-\operatorname{ddep}(N)=\emptyset,
-\qquad
-\operatorname{ddep}(\iota)=\{\iota\}.
-\]
-
-For filter expressions,
-\[
-\operatorname{ddep}(f)=\{f\},
-\qquad
-\operatorname{ddep}(\mathbf 1_J)=\operatorname{ddep}(J).
-\]
-
-For filter-induced views,
-\[
-\operatorname{ddep}(g^{f})
-=
-\{g,f\}.
-\]
-
-For merge-induced views,
-\[
-\operatorname{ddep}((g_0,g_1)^{\uparrow f})
-=
-\{g_0,g_1,f\}.
-\]
-
-For paired and packaged views, dependencies are collected componentwise.
-
-For a local assertion \(\Phi_{\mathcal V}\),
-\[
-\operatorname{ddep}(\Phi_{\mathcal V})
-\stackrel{\triangle}{=}
-\operatorname{ddep}(\mathcal V).
-\]
-\end{definition}
+  \begin{definition}[Descriptor Dependencies of View Indices]
+    The descriptor dependency set of a view index is written
+    \[
+    \operatorname{ddep}(\mathcal V).
+    \]
+    
+    For ordinary views,
+    \[
+    \operatorname{ddep}(g[i])
+    =
+    \operatorname{ddep}(g[1,\ldots,n])
+    =
+    \operatorname{ddep}(g)
+    =
+    \{g\}.
+    \]
+    
+    For descriptor integer expressions,
+    \[
+    \operatorname{ddep}(N)=\emptyset,
+    \qquad
+    \operatorname{ddep}(\iota)=\{\iota\}.
+    \]
+    
+    For induced views,
+    \[
+    \operatorname{ddep}(g^{f})
+    =
+    \{g,f\},
+    \qquad
+    \operatorname{ddep}((g_0,g_1)^{\uparrow f})
+    =
+    \{g_0,g_1,f\}.
+    \]
+    
+    For paired and packaged views, dependencies are collected componentwise. For
+    a local assertion,
+    \[
+    \operatorname{ddep}(\Phi_{\mathcal V})
+    \stackrel{\triangle}{=}
+    \operatorname{ddep}(\mathcal V).
+    \]
+    \end{definition}
 
 \textbf{Structural proof rules for QKD:}
 
@@ -1919,13 +1912,11 @@ x[i]:=a
 }{
 \Gamma
 \vdash
-z:=_{\$}\mathbf{rand}(n,\varphi)
+z:=_{\$}\mathbf{rand}(n)
 \sim
-z':=_{\$}\mathbf{rand}(n',\varphi')
+z':=_{\$}\mathbf{rand}(n')
 :
 \Phi
-\land
-\equiv_{(\varphi,\varphi')}
 \Longrightarrow
 \equiv_{(z[1,\ldots,n],z'[1,\ldots,n'])}
 \land
@@ -1941,7 +1932,7 @@ z':=_{\$}\mathbf{rand}(n',\varphi')
 \quad
 \Gamma
 \vdash
-z:=_{\$}\mathbf{rand}(n,\varphi)
+z:=_{\$}\mathbf{rand}(n)
 \sim
 \mathbf{skip}
 :
@@ -2065,10 +2056,10 @@ p :=_{\$}\textit{rand}_{n}(C_m)
 \Gamma
 \vdash\;&
 f:=_{\$}\mathbf{shuffle}(m)_N;\
-p:=_{\$}\mathbf{rand}(N,f)
+p:=_{\$}\mathbf{rand}(N)
 \\
 &\sim
-p':=_{\$}\mathbf{rand}(N',\mathbf 1_{N'});\
+p':=_{\$}\mathbf{rand}(N');\
 f':=_{\$}\mathbf{shuffle}(m')_{N'}:
 \\
 &
@@ -2076,7 +2067,7 @@ f':=_{\$}\mathbf{shuffle}(m')_{N'}:
 \Longrightarrow
 \equiv_{(f,f')}
 \land
-\equiv_{(p[1,\ldots,N],p'[1,\ldots,N'])}
+\equiv_{(p^f,p'^{f'})}
 \land
 \operatorname{proj}
 \left(
@@ -3581,103 +3572,72 @@ gives:
     syndrome measurement, decoder lookups, indexed Pauli corrections, and CSS
     decoding.
 
-    \item \(\mathbf{rand}(n,\varphi)\) and \(\mathbf{rand}(n)\):
-    
-    The primitive random command is
-    \[
-    p:=_{\$}\mathbf{rand}(n,\varphi),
-    \]
-    where \(\varphi\) is a filter expression satisfying
-    \[
-    \llbracket\varphi\rrbracket_{\xi}\in\{0,1\}^{n}
-    \]
-    on well-formed branches.
-    
-    Its one-program denotation uniformly initializes the register payloads
-    \[
-    p[1],\ldots,p[n].
-    \]
-    The filter expression \(\varphi\) is descriptor data. It is used by relational
-    rules to certify that the two samplings are aligned under the same local view
-    index. It does not change the one-program randomization denotation.
-    
-    The notation
-    \[
-    p:=_{\$}\mathbf{rand}(n)
-    \]
-    is syntactic sugar for
-    \[
-    p:=_{\$}\mathbf{rand}(n,\mathbf 1_n),
-    \]
-    where \(\mathbf 1_n\) is the deterministic all-one filter of length \(n\).
     
     
-    \item \(\mathbf{select}_{f}\):
-    
-    Let \(g\) be an indexed logical descriptor view, and let \(g_0,g_1\) be
-    logical lists with
-    \[
-    \operatorname{sort}(g_0)=\operatorname{sort}(g_1)=\operatorname{sort}(g).
-    \]
-    Let \(f\) be a bit-valued filter descriptor.  The command
-    \[
-    (g_0,g_1)
-    :=
-    \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
-    \]
-    is well formed only when \(J\) is the whole current length of \(g\):
-    \[
-    J=\mathbf{length}(g)
-    \]
-    or \(J=N\) with
-    \[
-    N=\mathbf{length}(g).
-    \]
-    
-    It defines \(g_0\) as the \(f=0\) subview of \(g\), and \(g_1\) as the
-    \(f=1\) subview of \(g\), preserving relative order in each fiber.
-    
-    The package notation
-    \[
-    (\mathcal P_0,\mathcal P_1)
-    :=
-    \mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P
-    \]
-    is componentwise.
-    
-    \(\mathbf{select}_{f}\) constructs descriptor views, not value/state copies.
+\item \(\mathbf{select}_{f}\):
 
-    \item \(\mathbf{merge}_{f}\):
-    
-    Let \(g\) be a target descriptor view, let \(g_0,g_1\) be source views, and let
-    \(f\) be a bit-valued filter descriptor.  The command
-    \[
-    g
-    :=
-    \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1
-    \]
-    is well formed only when \(J\) is the whole merged length:
-    \[
-    J=\mathbf{length}(g_0)+\mathbf{length}(g_1)
-    \]
-    or \(J=N\) with
-    \[
-    N=\mathbf{length}(g_0)+\mathbf{length}(g_1).
-    \]
-    
-    It interleaves \(g_0,g_1\) according to \(f\), preserving source order.
-    
-    The package notation
-    \[
-    \mathcal P
-    :=
-    \mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P_0,\mathcal P_1
-    \]
-    is componentwise.
-    
-    \(\mathbf{merge}_{f}\) constructs descriptor views, not value/state copies.
+Let \(g\) be an indexed logical descriptor view, and let \(g_0,g_1\) be
+logical lists with
+\[
+\operatorname{sort}(g_0)=\operatorname{sort}(g_1)=\operatorname{sort}(g).
+\]
+Let \(f\) be a bit-valued filter descriptor. The command
+\[
+(g_0,g_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g
+\]
+is well formed only when \(J\) is the whole current length of \(g\):
+\[
+J=\mathbf{length}(g)
+\]
+or \(J=N\) with
+\[
+N=\mathbf{length}(g).
+\]
 
+It defines \(g_0\) and \(g_1\) as the \(f=0\) and \(f=1\) subviews of \(g\),
+preserving relative order in each fiber.
 
+The package notation
+\[
+(\mathcal P_0,\mathcal P_1)
+:=
+\mathbf{select}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P
+\]
+is componentwise.
+
+\(\mathbf{select}_{f}\) constructs descriptor views, not value/state copies.
+
+\item \(\mathbf{merge}_{f}\):
+
+Let \(g\) be a target descriptor view, let \(g_0,g_1\) be source views, and let
+\(f\) be a bit-valued filter descriptor. The command
+\[
+g
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ g_0,g_1
+\]
+is well formed only when \(J\) is the whole merged length:
+\[
+J=\mathbf{length}(g_0)+\mathbf{length}(g_1)
+\]
+or \(J=N\) with
+\[
+N=\mathbf{length}(g_0)+\mathbf{length}(g_1).
+\]
+
+It interleaves \(g_0,g_1\) according to \(f\), preserving source order.
+
+The package notation
+\[
+\mathcal P
+:=
+\mathbf{merge}_{f}^{N}\ \mathbf{from}\ J\ \mathbf{for}\ \mathcal P_0,\mathcal P_1
+\]
+is componentwise.
+
+\(\mathbf{merge}_{f}\) constructs descriptor views, not value/state copies.
 
     \item {\textbf{Bit-order send syntax sugar.}}
     
